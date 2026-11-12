@@ -243,12 +243,50 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_read_timeout 1800s;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 1800s;
+        proxy_read_timeout 3600s;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 3600s;
+        send_timeout 3600s;
+        proxy_buffering off;
         proxy_request_buffering off;
+        proxy_max_temp_file_size 0;
     }
 }
+```
+
+### Configuração no Nginx Proxy Manager (NPM) — Fundamental para Downloads e Uploads Grandes
+
+Se você utiliza o **Nginx Proxy Manager**, por padrão o NPM limita uploads em `1m` (causando erro `413 Request Entity Too Large`) e encerra conexões lentas ou arquivos de múltiplos gigabytes após 60 segundos (gerando erro `504 Gateway Timeout`).
+
+Para resolver isso de forma definitiva:
+1. Abra o painel do seu Nginx Proxy Manager.
+2. Edite o seu **Proxy Host** (ex: `pombo.seudominio.com`).
+3. Na aba **Details**:
+   - Forward Hostname / IP: o IP do seu servidor ou nome do contêiner (`pombo`).
+   - Forward Port: `8080`.
+   - Ative a opção **Websockets Support**.
+4. Na aba **Advanced**, cole as seguintes diretivas na caixa **Custom Nginx Configuration**:
+
+```nginx
+# Permitir uploads de qualquer tamanho (sem limite 413)
+client_max_body_size 0;
+
+# Desativar buffer para streaming direto sem salvar arquivos temporarios no proxy
+proxy_buffering off;
+proxy_request_buffering off;
+proxy_max_temp_file_size 0;
+
+# Aumentar timeouts para 1 hora (impede o erro 504 Gateway Timeout em downloads longos)
+proxy_connect_timeout 300s;
+proxy_send_timeout 3600s;
+proxy_read_timeout 3600s;
+send_timeout 3600s;
+
+# Preservar Range Requests (para avançar videos/audios sem travar e retomar downloads)
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+proxy_set_header Range $http_range;
+proxy_set_header If-Range $http_if_range;
 ```
 
 No arquivo `.env`, configure:

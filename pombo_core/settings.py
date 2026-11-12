@@ -14,11 +14,22 @@ DEBUG = os.getenv('DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
 
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
-]
-if not CSRF_TRUSTED_ORIGINS:
-    # Por padrão aceita localhost e ips locais se não for informado
+raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+parsed_csrf = []
+for origin in raw_csrf.split(','):
+    item = origin.strip()
+    if not item:
+        continue
+    if item.startswith('http://') or item.startswith('https://'):
+        parsed_csrf.append(item)
+    else:
+        # Se o domínio foi informado sem protocolo (ex: pombo.tsnunes.com.br), adiciona https e http
+        parsed_csrf.append(f'https://{item}')
+        parsed_csrf.append(f'http://{item}')
+
+if parsed_csrf:
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(parsed_csrf))
+else:
     CSRF_TRUSTED_ORIGINS = ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost']
 
 INSTALLED_APPS = [

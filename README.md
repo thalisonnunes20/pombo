@@ -242,12 +242,49 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_read_timeout 1800s;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 1800s;
+        proxy_read_timeout 3600s;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 3600s;
+        send_timeout 3600s;
+        proxy_buffering off;
         proxy_request_buffering off;
+        proxy_max_temp_file_size 0;
     }
 }
+```
+
+### Nginx Proxy Manager (NPM) Setup (Crucial for Large Downloads & Uploads)
+
+If you are using **Nginx Proxy Manager**, large downloads (e.g., 5GB+ videos or archives) or uploads will terminate after 60 seconds with `504 Gateway Timeout` or `413 Request Entity Too Large` unless you configure the **Advanced** tab.
+
+In your Nginx Proxy Manager dashboard:
+1. Edit your **Proxy Host** (e.g., `pombo.yourdomain.com`).
+2. In the **Details** tab:
+   - Forward Hostname/IP: your server IP or container name (e.g. `pombo`).
+   - Forward Port: `8080`.
+   - Enable **Websockets Support**.
+3. In the **Advanced** tab, paste the following **Custom Nginx Configuration**:
+
+```nginx
+# Allow unlimited upload size (no 413 Payload Too Large)
+client_max_body_size 0;
+
+# Disable proxy buffering to stream large files instantly without disk spooling
+proxy_buffering off;
+proxy_request_buffering off;
+proxy_max_temp_file_size 0;
+
+# Increase timeouts to 1 hour (prevents 504 Gateway Timeout on slow/long downloads)
+proxy_connect_timeout 300s;
+proxy_send_timeout 3600s;
+proxy_read_timeout 3600s;
+send_timeout 3600s;
+
+# Preserve HTTP Range Requests for video/audio seeking and resumable downloads
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+proxy_set_header Range $http_range;
+proxy_set_header If-Range $http_if_range;
 ```
 
 In `.env`, set:
