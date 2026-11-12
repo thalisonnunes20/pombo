@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.permission_denied_title }} - {{ t.brand_name }} {{ t.brand_badge }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 40px auto; text-align: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 40px;">
+  <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 16px;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  </div>
+  <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">{{ t.permission_denied_heading }}</h2>
+  <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">{{ message }}</p>
+  <a href="{% url 'dashboard_overview' %}" class="btn btn-secondary">{{ t.btn_back_dashboard }}</a>
+</div>
+{% endblock %}

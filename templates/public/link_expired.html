@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.expired_title }} - {{ t.brand_name }} {{ t.brand_badge }}</title>
+  <link rel="stylesheet" href="{% static 'css/pombo.css' %}">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg-main);
+      padding: 24px;
+    }
+    .expired-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 25px 30px -10px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <div class="expired-card">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 20px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    
+    <h1 style="font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">{{ t.expired_title }}</h1>
+    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px;">
+      {{ t.expired_desc }}
+    </p>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; font-size: 12px; color: var(--text-secondary); margin-bottom: 24px;">
+      {{ t.expired_reason_label }} <strong style="color: var(--danger);">{{ reason|default:t.badge_time_expired }}</strong>
+    </div>
+
+    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">
+      {{ t.expired_footer_hint }}
+    </div>
+
+    <div class="lang-switcher">
+      <a href="{% url 'set_language' 'en' %}" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
+      <a href="{% url 'set_language' 'pt-br' %}" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
+    </div>
+  </div>
+</body>
+</html>

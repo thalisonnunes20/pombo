@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.nav_logs }} - {{ t.brand_name }} {{ t.brand_badge }}{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho Interno do Conteúdo -->
+<div class="content-header">
+  <h1 class="page-title">{{ t.logs_title }}</h1>
+  <div style="display: flex; gap: 8px;">
+    <button type="button" class="btn btn-secondary" onclick="copyAllLogs()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+      {{ t.btn_copy_logs }}
+    </button>
+    <button type="button" class="btn btn-danger" onclick="handleClearLogs()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+      {{ t.btn_clear_logs }}
+    </button>
+  </div>
+</div>
+<!-- Filtros por Categoria e Nível -->
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+  <form method="get" style="display: flex; gap: 8px; flex: 1; max-width: 380px;">
+    {% if current_cat %}<input type="hidden" name="cat" value="{{ current_cat }}">{% endif %}
+    {% if current_level %}<input type="hidden" name="level" value="{{ current_level }}">{% endif %}
+    <input type="text" name="q" value="{{ query }}" placeholder="Buscar nos logs..." class="form-control">
+    <button type="submit" class="btn btn-secondary">{{ t.btn_search }}</button>
+  </form>
+
+  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+    <a href="?{% if query %}q={{ query }}&{% endif %}" class="btn btn-sm {% if not current_cat %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_all_cats }}</a>
+    <a href="?cat=link{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'link' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_links }}</a>
+    <a href="?cat=download{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'download' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_downloads }}</a>
+    <a href="?cat=upload{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'upload' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_uploads }}</a>
+    <a href="?cat=delete{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'delete' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_deletions }}</a>
+    <a href="?cat=auth{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'auth' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_auth }}</a>
+    <a href="?cat=error{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_cat == 'error' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.cat_errors }}</a>
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="panel-header">
+    <span class="panel-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+      {{ t.logs_panel_title }}
+    </span>
+    <span style="font-size: 12px; color: var(--text-muted);" id="logsCount">{{ logs|length }} eventos</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table" id="logsTable">
+      <thead>
+        <tr>
+          <th>{{ t.col_timestamp }}</th>
+          <th>{{ t.col_category }}</th>
+          <th>{{ t.col_level }}</th>
+          <th>{{ t.col_message }}</th>
+          <th>{{ t.col_ip }}</th>
+          <th>{{ t.col_user }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td style="font-family: monospace; font-size: 12px; white-space: nowrap;">
+            {{ log.created_at|date:"Y-m-d H:i:s" }}
+          </td>
+          <td>
+            <span class="badge badge-neutral">{{ log.get_category_display }}</span>
+          </td>
+          <td>
+            {% if log.level == 'INFO' %}
+              <span class="badge badge-active" style="font-size: 10px;">INFO</span>
+            {% elif log.level == 'WARN' %}
+              <span class="badge badge-warning" style="font-size: 10px;">WARN</span>
+            {% else %}
+              <span class="badge badge-danger" style="font-size: 10px;">ERROR</span>
+            {% endif %}
+          </td>
+          <td style="color: var(--text-primary); font-size: 13px;">
+            {{ log.message }}
+          </td>
+          <td style="font-family: monospace; font-size: 11px; color: var(--text-muted);">
+            {{ log.ip_address|default:"-" }}
+          </td>
+          <td>
+            {{ log.user.username|default:"Sistema / Anônimo" }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 48px;">
+            {{ t.no_logs_found }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="pageScript">
+  function copyAllLogs() {
+    const rows = document.querySelectorAll('#logsTable tbody tr');
+    if (!rows.length) return;
+
+    let logText = "";
+    rows.forEach(r => {
+      const cols = r.querySelectorAll('td');
+      if (cols.length >= 6) {
+        const time = cols[0].innerText.trim();
+        const cat = cols[1].innerText.trim();
+        const lvl = cols[2].innerText.trim();
+        const msg = cols[3].innerText.trim();
+        const ip = cols[4].innerText.trim();
+        const user = cols[5].innerText.trim();
+        logText += `[${time}] [${lvl}] [${cat}] ${msg} (IP: ${ip}, User: ${user})\n`;
+      }
+    });
+
+    if (!logText.trim()) {
+      showToast('Nenhum log para copiar.', 'info');
+      return;
+    }
+
+    navigator.clipboard.writeText(logText);
+    showToast(window.POMBO_T.logs_copied_toast, 'success');
+  }
+
+  function handleClearLogs() {
+    openConfirmDialog(window.POMBO_T.confirm_clear_logs, async () => {
+      try {
+        const response = await fetch("{% url 'api_clear_logs' %}", {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCsrfToken()
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          showToast(window.POMBO_T.logs_cleared_toast, 'success');
+          setTimeout(() => loadDashboardRoute(window.location.href), 400);
+        } else {
+          showToast(data.error || 'Erro', 'error');
+        }
+      } catch (e) {
+        showToast('Erro de comunicação.', 'error');
+      }
+    });
+  }
+
+  window.copyAllLogs = copyAllLogs;
+  window.handleClearLogs = handleClearLogs;
+</script>
+{% endblock %}
+

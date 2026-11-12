@@ -1,0 +1,56 @@
+# Byte-compiled / optimized / AST files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite Database & Persistent Data
+data/*
+!data/.gitkeep
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+
+# Environment & Secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# Local Storage (Files uploaded or mapped)
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/external/*
+!storage/external/.gitkeep
+
+# Collected Static Files
+staticfiles/
+
+# Testing & Code Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Logs
+*.log
+logs/
+
+# Operating System & Editor Artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary & Backup Files
+*.bak
+*.tmp
+*.temp

@@ -1,0 +1,41 @@
+services:
+  pombo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pombo:v0.0.1
+    container_name: pombo
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      # Security Secret Key (Change to a cryptographically strong string in production!)
+      - SECRET_KEY=${SECRET_KEY:-pombo-insecure-production-secret-key-change-me-v001}
+      # Debug mode (0 = Disabled for production, 1 = Enabled for local dev)
+      - DEBUG=${DEBUG:-0}
+      # Allowed HTTP hosts (comma-separated or '*' for any host)
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      # CSRF Trusted Origins (Comma-separated URLs with scheme; required for custom domains / HTTPS)
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      # Initial Super Administrator Credentials (created automatically on first boot)
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-adminpassword123}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@pombo.local}
+      # Default UI Language: 'en' (US English, default) or 'pt-br' (Brazilian Portuguese)
+      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-en}
+      # Nginx X-Accel Direct-to-Disk Streaming (1 = enabled, default in Docker)
+      - USE_X_ACCEL=${USE_X_ACCEL:-1}
+      # Optional: External PostgreSQL/MySQL database connection URL (defaults to built-in SQLite WAL)
+      # - DATABASE_URL=postgres://user:password@host:5432/pombo_db
+    volumes:
+      # 1. Persistent SQLite database and WAL journal files
+      - ./data:/app/data
+      # 2. Local uploads storage directory
+      - ./storage/uploads:/app/storage/uploads
+      # 3. Pre-existing host files mapped directly into Pombo (read-only by default)
+      - ./storage/external:/app/storage/external:ro
+      # Optional code mounts for hot-reloading in local development (uncomment if modifying code):
+      # - ./templates:/app/templates
+      # - ./static:/app/static
+      # - ./apps:/app/apps
+      # - ./pombo_core:/app/pombo_core

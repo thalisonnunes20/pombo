@@ -1,0 +1,2 @@
+# pombo_core package
+

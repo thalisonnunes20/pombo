@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.nav_users }} - {{ t.brand_name }} {{ t.brand_badge }}{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho Interno do Conteúdo -->
+<div class="content-header">
+  <h1 class="page-title">{{ t.users_title }}</h1>
+  {% if user.is_superuser or user.can_manage_users %}
+  <button type="button" class="btn btn-primary" onclick="openNewUserModal()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+    {{ t.btn_new_user }}
+  </button>
+  {% endif %}
+</div>
+<div class="panel-card">
+  <div class="panel-header">
+    <span class="panel-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      {{ t.users_panel_title }}
+    </span>
+    <span style="font-size: 12px; color: var(--text-muted);">{{ users|length }} {{ t.users_count }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{{ t.col_user }}</th>
+          <th>{{ t.col_email }}</th>
+          <th>{{ t.col_permissions }}</th>
+          <th>{{ t.col_user_status }}</th>
+          <th style="text-align: right;">{{ t.col_actions }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+              {{ u.username }}
+              {% if u.is_superuser %}
+                <span class="badge badge-active" style="font-size: 9px;">Superadmin</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>{{ u.email|default:t.not_informed }}</td>
+          <td>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              {% if u.can_upload or u.is_superuser %}
+                <span class="badge badge-neutral" title="{{ t.perm_can_upload }}">{{ t.perm_upload }}</span>
+              {% endif %}
+              {% if u.can_create_links or u.is_superuser %}
+                <span class="badge badge-neutral" title="{{ t.perm_can_create_links }}">{{ t.perm_links }}</span>
+              {% endif %}
+              {% if u.can_access_external or u.is_superuser %}
+                <span class="badge badge-warning" title="{{ t.perm_can_access_external }}">{{ t.perm_mapped }}</span>
+              {% endif %}
+              {% if u.can_delete_files or u.is_superuser %}
+                <span class="badge badge-danger" title="{{ t.perm_can_delete_files }}">{{ t.perm_delete }}</span>
+              {% endif %}
+              {% if u.can_manage_users or u.is_superuser %}
+                <span class="badge badge-active" title="{{ t.perm_can_manage_users }}">{{ t.perm_manage }}</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge badge-active">{{ t.status_active }}</span>
+            {% else %}
+              <span class="badge badge-danger">{{ t.status_inactive }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            {% if u.id != request.user.id and not u.is_superuser %}
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleUserStatus('{{ u.id }}')">
+              {% if u.is_active %}{{ t.action_deactivate }}{% else %}{{ t.action_reactivate }}{% endif %}
+            </button>
+            {% else %}
+            <span style="font-size: 11px; color: var(--text-muted);">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Novo Usuário -->
+<div class="modal-backdrop" id="userModalBackdrop">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">{{ t.modal_user_title }}</h3>
+    </div>
+    <form id="newUserForm" onsubmit="handleCreateUser(event)">
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.form_username }}</label>
+          <input type="text" name="username" required class="form-control" placeholder="{{ t.form_username_placeholder }}">
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.form_email }}</label>
+          <input type="email" name="email" class="form-control" placeholder="user@domain.com">
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.form_password }}</label>
+          <input type="password" name="password" minlength="8" required class="form-control" placeholder="{{ t.form_password_hint }}">
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color); padding-top: 14px;">
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase;">{{ t.form_permissions_title }}</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+              <input type="checkbox" name="can_upload" checked>
+              {{ t.perm_can_upload }}
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+              <input type="checkbox" name="can_create_links" checked>
+              {{ t.perm_can_create_links }}
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+              <input type="checkbox" name="can_access_external">
+              {{ t.perm_can_access_external }}
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+              <input type="checkbox" name="can_delete_files">
+              {{ t.perm_can_delete_files }}
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+              <input type="checkbox" name="can_manage_users">
+              {{ t.perm_can_manage_users }}
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">{{ t.btn_cancel }}</button>
+        <button type="submit" id="btnSubmitUser" class="btn btn-primary">{{ t.btn_create_user }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="pageScript">
+  function openNewUserModal() {
+    document.getElementById('userModalBackdrop').classList.add('active');
+  }
+
+  function closeUserModal() {
+    document.getElementById('userModalBackdrop').classList.remove('active');
+    document.getElementById('newUserForm').reset();
+  }
+
+  async function handleCreateUser(e) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = document.getElementById('btnSubmitUser');
+    submitBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('username', form.username.value);
+    formData.append('email', form.email.value);
+    formData.append('password', form.password.value);
+    formData.append('can_upload', form.can_upload.checked);
+    formData.append('can_create_links', form.can_create_links.checked);
+    formData.append('can_access_external', form.can_access_external.checked);
+    formData.append('can_delete_files', form.can_delete_files.checked);
+    formData.append('can_manage_users', form.can_manage_users.checked);
+
+    try {
+      const response = await fetch("{% url 'api_create_user' %}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': getCsrfToken()
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        let msg = window.POMBO_T.user_created_toast.replace('{username}', data.user.username);
+        showToast(msg, 'success');
+        closeUserModal();
+        setTimeout(() => loadDashboardRoute(window.location.href), 600);
+      } else {
+        showToast(data.error || 'Error', 'error');
+      }
+    } catch (e) {
+      showToast('Error', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  async function toggleUserStatus(userId) {
+    try {
+      const response = await fetch(`/auth/api/users/toggle/${userId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      });
+      const data = await response.json();
+      if (data.success) {
+        showToast(window.POMBO_T.user_status_toast, 'success');
+        setTimeout(() => loadDashboardRoute(window.location.href), 500);
+      } else {
+        showToast(data.error || 'Error', 'error');
+      }
+    } catch (e) {
+      showToast('Error', 'error');
+    }
+  }
+
+  window.openNewUserModal = openNewUserModal;
+  window.closeUserModal = closeUserModal;
+  window.handleCreateUser = handleCreateUser;
+  window.toggleUserStatus = toggleUserStatus;
+</script>
+{% endblock %}

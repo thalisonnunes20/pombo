@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.login_title }} - {{ t.brand_name }} {{ t.brand_badge }}</title>
+  <link rel="stylesheet" href="{% static 'css/pombo.css' %}">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg-main);
+      padding: 20px;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 380px;
+      animation: fadeInContent 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .login-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .login-header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .login-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: #93c5fd;
+      margin-bottom: 12px;
+    }
+    .login-lang-bar {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tela de Carregamento Inicial (Preloader em tela cheia) -->
+  <div id="appPreloader">
+    <div class="preloader-box">
+      <div class="preloader-logo-ring">
+        <div class="loading-spinner"></div>
+        <div class="preloader-icon">
+          {% include 'components/pombo_icon.html' with size=24 color='#60a5fa' %}
+        </div>
+      </div>
+      <span class="preloader-text">{{ t.system_loading }}</span>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          {% include 'components/pombo_icon.html' with size=24 color='#60a5fa' %}
+        </div>
+        <h2 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">{{ t.login_title }}</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">{{ t.login_subtitle }}</p>
+      </div>
+
+      {% if error %}
+      <div style="background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px;">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'login' %}" onsubmit="handleLoginSubmit(event)">
+        {% csrf_token %}
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">{{ t.login_username }}</label>
+          <input type="text" id="loginUsernameInput" name="username" class="form-control" placeholder="{{ t.login_username_placeholder }}" required autofocus>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">{{ t.login_password }}</label>
+          <input type="password" id="loginPasswordInput" name="password" class="form-control" placeholder="{{ t.login_password_placeholder }}" required>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;">
+          <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="rememberMeCheckbox" name="remember_me" value="true" style="width: 15px; height: 15px; accent-color: var(--accent-primary); cursor: pointer; border-radius: 4px;">
+            <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">{{ t.login_remember_me }}</span>
+          </label>
+        </div>
+
+        <button type="submit" id="btnSubmitLogin" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 14px;">
+          {{ t.login_button }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Seletor de Idioma na tela de login -->
+    <div class="login-lang-bar">
+      <div class="lang-switcher">
+        <a href="{% url 'set_language' 'en' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
+        <a href="{% url 'set_language' 'pt-br' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Carrega o usuário salvo caso exista
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const savedUser = localStorage.getItem('pombo_saved_login');
+        const usernameInput = document.getElementById('loginUsernameInput');
+        const passwordInput = document.getElementById('loginPasswordInput');
+        const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+
+        if (savedUser && usernameInput) {
+          usernameInput.value = savedUser;
+          if (rememberCheckbox) rememberCheckbox.checked = true;
+          if (passwordInput) passwordInput.focus();
+        }
+      } catch (e) {}
+    });
+
+    function handleLoginSubmit(e) {
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        const text = preloader.querySelector('.preloader-text');
+        if (text) text.textContent = "{{ t.system_loading|escapejs }}";
+        preloader.classList.remove('preloader-hidden');
+      }
+
+      // Salva ou remove o nome de usuário no localStorage conforme escolha
+      try {
+        const usernameInput = document.getElementById('loginUsernameInput');
+        const rememberCheckbox = document.getElementById('rememberMeCheckbox');
+        if (rememberCheckbox && rememberCheckbox.checked && usernameInput && usernameInput.value.trim()) {
+          localStorage.setItem('pombo_saved_login', usernameInput.value.trim());
+        } else {
+          localStorage.removeItem('pombo_saved_login');
+        }
+      } catch (e) {}
+    }
+
+    function handleLangSwitch(e, url) {
+      e.preventDefault();
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        const text = preloader.querySelector('.preloader-text');
+        if (text) text.textContent = "{{ t.system_loading|escapejs }}";
+        preloader.classList.remove('preloader-hidden');
+      }
+      setTimeout(() => {
+        window.location.href = url;
+      }, 120);
+    }
+
+    window.addEventListener('load', () => {
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        setTimeout(() => {
+          preloader.classList.add('preloader-hidden');
+        }, 380);
+      }
+    });
+  </script>
+</body>
+</html>

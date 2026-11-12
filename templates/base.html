@@ -1,0 +1,537 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ t.brand_name }} - {{ t.brand_badge }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/pombo.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Tela de Carregamento Inicial (Preloader em tela cheia ao dar F5, login, logout ou troca de idioma) -->
+  <div id="appPreloader">
+    <div class="preloader-box">
+      <div class="preloader-logo-ring">
+        <div class="loading-spinner"></div>
+        <div class="preloader-icon">
+          {% include 'components/pombo_icon.html' with size=24 color='#60a5fa' %}
+        </div>
+      </div>
+      <span class="preloader-text">{{ t.system_loading }}</span>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Sidebar Fixa -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border-color); color: #60a5fa;">
+          {% include 'components/pombo_icon.html' with size=20 color='#60a5fa' %}
+        </div>
+        <span class="brand-title">
+          {{ t.brand_name }}
+          <span class="brand-badge">{{ t.brand_badge }}</span>
+        </span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="{% url 'dashboard_overview' %}" class="nav-link {% if current_page == 'overview' %}active{% endif %}" data-nav="overview">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/>
+            <rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+          </svg>
+          {{ t.nav_overview }}
+        </a>
+
+        {% if user.can_upload or user.is_superuser %}
+        <a href="{% url 'dashboard_upload' %}" class="nav-link {% if current_page == 'upload' %}active{% endif %}" data-nav="upload">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+          </svg>
+          {{ t.nav_upload }}
+        </a>
+        {% endif %}
+
+        <a href="{% url 'dashboard_explorer' %}" class="nav-link {% if current_page == 'explorer' %}active{% endif %}" data-nav="explorer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+          </svg>
+          {{ t.nav_explorer }}
+        </a>
+
+        <a href="{% url 'dashboard_links' %}" class="nav-link {% if current_page == 'links' %}active{% endif %}" data-nav="links">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          {{ t.nav_links }}
+        </a>
+
+        {% if user.is_admin_or_manager %}
+        <a href="{% url 'dashboard_users' %}" class="nav-link {% if current_page == 'users' %}active{% endif %}" data-nav="users">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          {{ t.nav_users }}
+        </a>
+        <a href="{% url 'dashboard_logs' %}" class="nav-link {% if current_page == 'logs' %}active{% endif %}" data-nav="logs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>
+          </svg>
+          {{ t.nav_logs }}
+        </a>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar">
+            {{ user.username|make_list|first|upper }}
+          </div>
+          <div class="user-info">
+            <span class="user-name">{{ user.username }}</span>
+            <span class="user-role">{% if user.is_superuser %}{{ t.role_superadmin }}{% else %}{{ t.role_operator }}{% endif %}</span>
+          </div>
+        </div>
+        <a href="{% url 'logout' %}" onclick="handleLogout(event)" title="{{ t.nav_logout }}" style="color: var(--text-muted); padding: 4px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+          </svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Fundo Escuro para Menu Mobile -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top-bar Fixa com Seletor Global de Idioma e Menu Mobile -->
+      <header class="top-bar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" class="mobile-nav-toggle" id="mobileMenuToggle" onclick="toggleMobileSidebar()" aria-label="Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="mobile-brand" style="align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border-color); color: #60a5fa;">
+              {% include 'components/pombo_icon.html' with size=18 color='#60a5fa' %}
+            </div>
+            <span style="font-weight: 700; font-size: 14px;">{{ t.brand_name }}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px; margin-left: auto;">
+          <div class="lang-switcher">
+            <a href="{% url 'set_language' 'en' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
+            <a href="{% url 'set_language' 'pt-br' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Quadrado de Conteúdo Dinâmico (onde os dados, títulos e animações ocorrem) -->
+      <div class="content-body" id="mainContentBody">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Global de Geração de Links (SEM "X", fechamento pelo botão Cancelar) -->
+  <div class="modal-backdrop" id="shareModalBackdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ t.modal_share_title }}</h3>
+      </div>
+      <form id="shareLinkForm" onsubmit="handleCreateLink(event)">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+          <input type="hidden" id="modalFileId" name="file_id">
+          
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_selected_file }}</label>
+            <div id="modalFileName" style="font-weight: 600; color: var(--text-primary); padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); word-break: break-all;">-</div>
+          </div>
+
+          <!-- Limite de downloads -->
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_clicks_limit }}</label>
+            <input type="number" name="max_downloads" min="1" class="form-control" placeholder="{{ t.modal_clicks_placeholder }}">
+            <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">{{ t.modal_clicks_hint }}</span>
+          </div>
+
+          <!-- Tempo de validade -->
+          <div>
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_validity_time }}</label>
+            <select name="expiry_preset" id="expiryPresetSelect" class="form-control" onchange="toggleCustomDate(this.value)">
+              <option value="none">{{ t.expiry_none }}</option>
+              <option value="1h">{{ t.expiry_1h }}</option>
+              <option value="24h">{{ t.expiry_24h }}</option>
+              <option value="7d">{{ t.expiry_7d }}</option>
+              <option value="30d">{{ t.expiry_30d }}</option>
+              <option value="custom">{{ t.expiry_custom }}</option>
+            </select>
+          </div>
+
+          <div id="customDateContainer" style="display: none;">
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_custom_date }}</label>
+            <input type="datetime-local" name="custom_expires_at" class="form-control">
+          </div>
+
+          <!-- Modo de entrega -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">{{ t.modal_delivery_mode }}</label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                <input type="radio" name="is_direct" value="false" checked style="margin-top: 3px;">
+                <div>
+                  <div style="font-weight: 500; color: var(--text-primary);">{{ t.mode_web_page }}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">{{ t.mode_web_page_desc }}</div>
+                </div>
+              </label>
+              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                <input type="radio" name="is_direct" value="true" style="margin-top: 3px;">
+                <div>
+                  <div style="font-weight: 500; color: var(--text-primary);">{{ t.mode_direct }}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">{{ t.mode_direct_desc }}</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Resultado do Link Gerado -->
+          <div id="modalResultBox" style="display: none; background: #141720; border: 1px solid #1e3a8a; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="font-size: 11px; font-weight: 600; color: #60a5fa; margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_generated_success }}</div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="generatedLinkInput" readonly class="form-control" style="background: #0d0f14; border-color: #1e3a8a; font-family: monospace; font-size: 12px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="copyGeneratedLink()">{{ t.btn_copy }}</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeShareModal()">{{ t.btn_cancel }}</button>
+          <button type="submit" id="btnSubmitShare" class="btn btn-primary">{{ t.btn_generate }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Customizado de Confirmação (Substitui confirm() do navegador) -->
+  <div class="modal-backdrop" id="customConfirmModalBackdrop">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmModalTitle">{{ t.confirm_title }}</h3>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="confirmModalCancelBtn">{{ t.btn_cancel }}</button>
+        <button type="button" class="btn btn-primary" id="confirmModalOkBtn">{{ t.btn_ok }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    window.POMBO_T = {{ t_json|safe }};
+
+    // Preloader em tela inteira ao dar F5 ou carregar a página inicialmente
+    window.addEventListener('load', () => {
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        setTimeout(() => {
+          preloader.classList.add('preloader-hidden');
+        }, 400);
+      }
+    });
+
+    function handleLangSwitch(e, url) {
+      e.preventDefault();
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        const text = preloader.querySelector('.preloader-text');
+        if (text) text.textContent = window.POMBO_T.system_loading;
+        preloader.classList.remove('preloader-hidden');
+      }
+      setTimeout(() => {
+        window.location.href = url;
+      }, 120);
+    }
+
+    function handleLogout(e) {
+      e.preventDefault();
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        const text = preloader.querySelector('.preloader-text');
+        if (text) text.textContent = window.POMBO_T.signing_out;
+        preloader.classList.remove('preloader-hidden');
+      }
+      setTimeout(() => {
+        window.location.href = "{% url 'logout' %}";
+      }, 200);
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (sidebar && backdrop) {
+        sidebar.classList.toggle('mobile-open');
+        backdrop.classList.toggle('active');
+      }
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (sidebar) sidebar.classList.remove('mobile-open');
+      if (backdrop) backdrop.classList.remove('active');
+    }
+
+    function getCsrfToken() {
+      const match = document.cookie.match(/csrftoken=([^;]+)/);
+      return match ? match[1] : '';
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      
+      let border = 'var(--border-color)';
+      if (type === 'success') border = 'var(--success)';
+      if (type === 'error') border = 'var(--danger)';
+      toast.style.borderColor = border;
+
+      toast.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.2s';
+        setTimeout(() => toast.remove(), 200);
+      }, 4000);
+    }
+
+    function openShareModal(fileId, fileName) {
+      document.getElementById('modalFileId').value = fileId;
+      document.getElementById('modalFileName').textContent = fileName;
+      document.getElementById('modalResultBox').style.display = 'none';
+      document.getElementById('shareModalBackdrop').classList.add('active');
+    }
+
+    function closeShareModal() {
+      document.getElementById('shareModalBackdrop').classList.remove('active');
+      document.getElementById('shareLinkForm').reset();
+      document.getElementById('customDateContainer').style.display = 'none';
+    }
+
+    function toggleCustomDate(val) {
+      document.getElementById('customDateContainer').style.display = (val === 'custom') ? 'block' : 'none';
+    }
+
+    async function handleCreateLink(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const submitBtn = document.getElementById('btnSubmitShare');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = window.POMBO_T.btn_generating;
+
+      try {
+        const response = await fetch("{% url 'api_create_link' %}", {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRFToken': getCsrfToken()
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const input = document.getElementById('generatedLinkInput');
+          input.value = data.link.primary_url;
+          document.getElementById('modalResultBox').style.display = 'block';
+          
+          // Copia automaticamente o link para a área de transferência
+          navigator.clipboard.writeText(data.link.primary_url);
+          showToast(window.POMBO_T.cdn_auto_copied, 'success');
+        } else {
+          showToast(data.error || 'Error', 'error');
+        }
+      } catch (err) {
+        showToast('Communication error with server.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = window.POMBO_T.btn_generate;
+      }
+    }
+
+    function copyGeneratedLink() {
+      const input = document.getElementById('generatedLinkInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      showToast(window.POMBO_T.link_copied_toast, 'success');
+    }
+
+    function openConfirmDialog(message, onOkCallback, title = null) {
+      const backdrop = document.getElementById('customConfirmModalBackdrop');
+      const msgEl = document.getElementById('confirmModalMessage');
+      const titleEl = document.getElementById('confirmModalTitle');
+      const okBtn = document.getElementById('confirmModalOkBtn');
+      const cancelBtn = document.getElementById('confirmModalCancelBtn');
+
+      msgEl.textContent = message;
+      if (title) titleEl.textContent = title;
+
+      const closeDialog = () => {
+        backdrop.classList.remove('active');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      okBtn.onclick = () => {
+        closeDialog();
+        if (onOkCallback) onOkCallback();
+      };
+
+      cancelBtn.onclick = closeDialog;
+      backdrop.classList.add('active');
+    }
+
+    // Transição Suave que carrega APENAS dentro do Quadrado de Conteúdo (#mainContentBody)
+    async function loadDashboardRoute(url, push = true) {
+      const mainBody = document.getElementById('mainContentBody');
+      if (!mainBody) {
+        window.location.href = url;
+        return;
+      }
+
+      // Rodinha de carregamento APENAS no quadrado do conteúdo (sem tocar na barra lateral nem no topo)
+      mainBody.innerHTML = `
+        <div class="content-loading-container">
+          <div class="content-spinner"></div>
+          <span class="content-loading-text">${(window.POMBO_T && window.POMBO_T.system_loading) ? window.POMBO_T.system_loading : 'Carregando...'}</span>
+        </div>
+      `;
+
+      // Atualiza imediatamente o menu lateral ativo
+      const targetUrlObj = new URL(url, window.location.origin);
+      document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+        const linkUrl = new URL(link.getAttribute('href'), window.location.origin);
+        if (linkUrl.pathname === targetUrlObj.pathname) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+
+      // Fecha o menu gaveta no celular ao navegar
+      closeMobileSidebar();
+
+      // Garantir tempo mínimo para a rodinha aparecer de forma nítida e agradável ao usuário
+      const minDelay = new Promise(resolve => setTimeout(resolve, 300));
+      const fetchPromise = fetch(url);
+
+      try {
+        const [response] = await Promise.all([fetchPromise, minDelay]);
+        if (!response.ok) {
+          window.location.href = url;
+          return;
+        }
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+
+        // Atualizar Título da Página no Navegador
+        const newDocTitle = doc.querySelector('title');
+        if (newDocTitle) document.title = newDocTitle.textContent;
+
+        // Injetar novo Conteúdo dentro do Quadrado
+        const newContent = doc.getElementById('mainContentBody');
+        if (newContent) {
+          mainBody.innerHTML = newContent.innerHTML;
+          // Reinicia animação suave no quadrado
+          mainBody.style.animation = 'none';
+          mainBody.offsetHeight; // forçar reflow
+          mainBody.style.animation = '';
+        }
+
+        // Executar scripts específicos da nova aba
+        const oldScript = document.getElementById('pageScript');
+        if (oldScript) oldScript.remove();
+
+        const newScript = doc.getElementById('pageScript');
+        if (newScript) {
+          const scriptEl = document.createElement('script');
+          scriptEl.id = 'pageScript';
+          scriptEl.textContent = newScript.textContent;
+          document.body.appendChild(scriptEl);
+        }
+
+        if (push) {
+          window.history.pushState({ url }, '', url);
+        }
+
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } catch (err) {
+        window.location.href = url;
+      }
+    }
+
+    // Interceptar cliques em TODOS os links internos do painel para navegar suavemente no quadrado
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+      // Exceções que navegam normalmente: logout, troca de idioma, downloads binários
+      if (href.includes('/auth/logout') || href.includes('/set-lang/') || href.includes('/storage/download/') || href.includes('/d/')) {
+        return;
+      }
+
+      const targetUrl = new URL(href, window.location.origin);
+      if (targetUrl.origin === window.location.origin) {
+        if (!targetUrl.pathname.startsWith('/static/') && !targetUrl.pathname.startsWith('/health/')) {
+          e.preventDefault();
+          loadDashboardRoute(targetUrl.href);
+        }
+      }
+    });
+
+    // Interceptar formulários GET (buscas e filtros) para navegar suavemente no quadrado
+    document.addEventListener('submit', (e) => {
+      const form = e.target.closest('form');
+      if (!form) return;
+      if ((form.method || 'get').toLowerCase() !== 'get') return;
+
+      e.preventDefault();
+      const action = form.getAttribute('action') || window.location.pathname;
+      const params = new URLSearchParams(new FormData(form)).toString();
+      const targetUrl = action + (params ? '?' + params : '');
+      loadDashboardRoute(targetUrl);
+    });
+
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.url) {
+        loadDashboardRoute(e.state.url, false);
+      } else {
+        loadDashboardRoute(window.location.href, false);
+      }
+    });
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

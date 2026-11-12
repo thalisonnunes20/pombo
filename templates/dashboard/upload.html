@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.nav_upload }} - {{ t.brand_name }} {{ t.brand_badge }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+  <h1 class="page-title">{{ t.upload_title }}</h1>
+</div>
+
+<div style="max-width: 900px; margin: 0 auto;">
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(this.files)">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: var(--radius-md); background: var(--bg-surface); border: 1px solid var(--border-color); margin-bottom: 16px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+      </svg>
+    </div>
+    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">{{ t.upload_drag_drop }}</h3>
+    <p style="font-size: 13px; color: var(--text-muted); max-width: 520px; margin: 0 auto;">
+      {{ t.upload_supported_types }}
+    </p>
+  </div>
+
+  <div class="upload-queue" id="uploadQueue"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="pageScript">
+  window.formatBytes = function(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  window.handleFileSelect = function(fileList) {
+    Array.from(fileList).forEach(file => {
+      window.uploadSingleFile(file);
+    });
+  };
+
+  window.uploadSingleFile = function(file) {
+    const uploadQueue = document.getElementById('uploadQueue');
+    if (!uploadQueue) return;
+
+    const itemId = 'upload-' + Math.random().toString(36).substr(2, 9);
+    const item = document.createElement('div');
+    item.className = 'queue-item';
+    item.id = itemId;
+    item.innerHTML = `
+      <div style="flex: 1; max-width: 320px; overflow: hidden;">
+        <div style="font-weight: 500; font-size: 13px; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${file.name}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${window.formatBytes(file.size)}</div>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="${itemId}-progress"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 140px; justify-content: flex-end;">
+        <span id="${itemId}-status" style="font-size: 12px; color: var(--text-muted);">0%</span>
+        <div id="${itemId}-action"></div>
+      </div>
+    `;
+    uploadQueue.prepend(item);
+
+    const formData = new FormData();
+    formData.append('files', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', "{% url 'api_storage_upload' %}", true);
+    xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        const prog = document.getElementById(`${itemId}-progress`);
+        const stat = document.getElementById(`${itemId}-status`);
+        if (prog) prog.style.width = percent + '%';
+        if (stat) stat.textContent = percent + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const res = JSON.parse(xhr.responseText);
+        if (res.success && res.files.length > 0) {
+          const uploaded = res.files[0];
+          const stat = document.getElementById(`${itemId}-status`);
+          const act = document.getElementById(`${itemId}-action`);
+          if (stat) stat.innerHTML = `<span class="badge badge-active">${window.POMBO_T.upload_status_completed}</span>`;
+          if (act) {
+            act.innerHTML = `
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openShareModal('${uploaded.id}', '${uploaded.name.replace(/'/g, "\\'")}')">
+                ${window.POMBO_T.upload_btn_create_link}
+              </button>
+            `;
+          }
+          showToast(`"${file.name}" ${window.POMBO_T.upload_toast_success}`, 'success');
+
+          // Abrir imediatamente a janela para configurar o CDN do arquivo enviado
+          setTimeout(() => {
+            openShareModal(uploaded.id, uploaded.name);
+            showToast(window.POMBO_T.upload_auto_opened, 'info');
+          }, 450);
+
+        } else {
+          const stat = document.getElementById(`${itemId}-status`);
+          if (stat) stat.innerHTML = `<span class="badge badge-danger">${window.POMBO_T.upload_status_error}</span>`;
+          showToast(res.error || window.POMBO_T.upload_toast_fail, 'error');
+        }
+      } else {
+        const stat = document.getElementById(`${itemId}-status`);
+        if (stat) stat.innerHTML = `<span class="badge badge-danger">${window.POMBO_T.upload_status_failed}</span>`;
+        showToast(window.POMBO_T.upload_toast_fail, 'error');
+      }
+    };
+
+    xhr.onerror = () => {
+      const stat = document.getElementById(`${itemId}-status`);
+      if (stat) stat.innerHTML = `<span class="badge badge-danger">${window.POMBO_T.upload_status_network_error}</span>`;
+      showToast(window.POMBO_T.upload_toast_network_err, 'error');
+    };
+
+    xhr.send(formData);
+  };
+
+  window.initUpload = function() {
+    const dropZone = document.getElementById('dropZone');
+    if (!dropZone) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length) window.handleFileSelect(files);
+    });
+  };
+
+  window.initUpload();
+</script>
+{% endblock %}
