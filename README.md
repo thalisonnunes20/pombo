@@ -91,6 +91,7 @@ services:
   pombo:
     image: ghcr.io/thalisonnunes20/pombo:latest
     container_name: pombo
+    entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     restart: unless-stopped
     ports:
       - "8080:80"
