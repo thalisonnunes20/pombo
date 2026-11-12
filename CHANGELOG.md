@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Checkbox on login screen enabling 30-day persistent session cookies (`set_expiry(2592000)`).
   - Standard session expiration on browser close (`set_expiry(0)`) when unchecked.
   - Client-side username caching via `localStorage` for rapid re-authentication.
+  - Minimalist monochromatic SVG password visibility toggle ("olhinho") on login password field.
+- **Favicon & System Branding**:
+  - Vector SVG favicon (`/static/favicon.svg`) matching the official pigeon mark configured across all system templates and served directly in Nginx and Django.
 - **Mobile Responsive Drawer Navigation**:
   - Off-canvas slide-out sidebar drawer with dark blur backdrop for viewports below 768px.
   - Mobile top bar header with SVG hamburger toggle and brand badge.

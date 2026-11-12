@@ -1,11 +1,16 @@
 from django.urls import path, include
 from django.http import HttpResponse
+from django.views.generic.base import RedirectView
 from .views import set_language_view
 
 def health_check(request):
     return HttpResponse("OK", content_type="text/plain")
 
 urlpatterns = [
+    # Favicon direto
+    path('favicon.ico', RedirectView.as_view(url='/static/favicon.svg', permanent=True)),
+    path('favicon.svg', RedirectView.as_view(url='/static/favicon.svg', permanent=True)),
+
     # Health check para Docker
     path('health/', health_check, name='health_check'),
 
