@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from apps.dashboard.models import log_event, AuditLog
 from .models import StoredFile
-from .services import scan_storage_directory, save_uploaded_file, delete_stored_file
+from .services import scan_storage_directory, save_uploaded_file, delete_stored_file, build_accel_redirect_path, build_content_disposition
 
 @login_required
 @require_POST
@@ -94,11 +94,10 @@ def admin_download_file(request, file_id):
     )
 
     if use_x_accel:
-        location = f"/_protected/{stored_file.source}/{stored_file.relative_path}"
         response = HttpResponse()
-        response['X-Accel-Redirect'] = location
+        response['X-Accel-Redirect'] = build_accel_redirect_path(stored_file)
         response['Content-Type'] = stored_file.mime_type
-        response['Content-Disposition'] = f'attachment; filename="{stored_file.name}"'
+        response['Content-Disposition'] = build_content_disposition(stored_file.name)
         return response
 
     # Fallback para desenvolvimento local sem Nginx

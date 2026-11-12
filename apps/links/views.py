@@ -9,6 +9,7 @@ from django.db.models import F
 from django.conf import settings
 
 from apps.storage.models import StoredFile
+from apps.storage.services import build_accel_redirect_path, build_content_disposition
 from apps.dashboard.models import log_event, AuditLog
 from pombo_core.security import get_client_ip, check_rate_limit
 from .models import ShareLink
@@ -206,7 +207,7 @@ def direct_download_view(request, token):
     if is_preview and stored_file.mime_type in SAFE_INLINE_MIMES:
         disposition = "inline"
     else:
-        disposition = f'attachment; filename="{filename}"'
+        disposition = build_content_disposition(filename)
 
     use_x_accel = settings.USE_X_ACCEL and (
         request.META.get('HTTP_X_ACCEL_SUPPORTED') == '1' or
@@ -214,9 +215,8 @@ def direct_download_view(request, token):
     )
 
     if use_x_accel:
-        location = f"/_protected/{stored_file.source}/{stored_file.relative_path}"
         response = HttpResponse()
-        response['X-Accel-Redirect'] = location
+        response['X-Accel-Redirect'] = build_accel_redirect_path(stored_file)
         response['Content-Type'] = stored_file.mime_type
         response['Content-Disposition'] = disposition
         response['X-Content-Type-Options'] = 'nosniff'

@@ -413,6 +413,8 @@
 
     // Transição Suave que carrega APENAS dentro do Quadrado de Conteúdo (#mainContentBody)
     async function loadDashboardRoute(url, push = true) {
+      // Resolve URLs relativas (ex: "?source=external") contra a página atual, não contra a raiz
+      url = new URL(url, window.location.href).href;
       const mainBody = document.getElementById('mainContentBody');
       if (!mainBody) {
         window.location.href = url;
@@ -505,7 +507,7 @@
         return;
       }
 
-      const targetUrl = new URL(href, window.location.origin);
+      const targetUrl = new URL(href, window.location.href);
       if (targetUrl.origin === window.location.origin) {
         if (!targetUrl.pathname.startsWith('/static/') && !targetUrl.pathname.startsWith('/health/')) {
           e.preventDefault();
@@ -521,7 +523,8 @@
       if ((form.method || 'get').toLowerCase() !== 'get') return;
 
       e.preventDefault();
-      const action = form.getAttribute('action') || window.location.pathname;
+      const actionAttr = form.getAttribute('action');
+      const action = actionAttr ? new URL(actionAttr, window.location.href).pathname : window.location.pathname;
       const params = new URLSearchParams(new FormData(form)).toString();
       const targetUrl = action + (params ? '?' + params : '');
       loadDashboardRoute(targetUrl);

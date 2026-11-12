@@ -34,24 +34,48 @@
 </div>
 
 <!-- Barra de Filtros e Busca -->
-<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
   <form method="get" style="display: flex; gap: 8px; flex: 1; max-width: 400px;">
     <input type="hidden" name="source" value="{{ current_source }}">
     {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+    {% if current_folder %}<input type="hidden" name="folder" value="{{ current_folder }}">{% endif %}
     <input type="text" name="q" value="{{ query }}" placeholder="{{ t.search_placeholder }}" class="form-control">
     <button type="submit" class="btn btn-secondary">{{ t.btn_search }}</button>
   </form>
 
   <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-    <a href="?source={{ current_source }}{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if not current_category %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_all }}</a>
-    <a href="?source={{ current_source }}&category=video{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'video' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_videos }}</a>
-    <a href="?source={{ current_source }}&category=image{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'image' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_photos }}</a>
-    <a href="?source={{ current_source }}&category=archive{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'archive' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_archives }}</a>
-    <a href="?source={{ current_source }}&category=document{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'document' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_documents }}</a>
+    <a href="?source={{ current_source }}{% if current_folder %}&folder={{ current_folder|urlencode }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if not current_category %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_all }}</a>
+    <a href="?source={{ current_source }}{% if current_folder %}&folder={{ current_folder|urlencode }}{% endif %}&category=video{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'video' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_videos }}</a>
+    <a href="?source={{ current_source }}{% if current_folder %}&folder={{ current_folder|urlencode }}{% endif %}&category=image{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'image' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_photos }}</a>
+    <a href="?source={{ current_source }}{% if current_folder %}&folder={{ current_folder|urlencode }}{% endif %}&category=archive{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'archive' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_archives }}</a>
+    <a href="?source={{ current_source }}{% if current_folder %}&folder={{ current_folder|urlencode }}{% endif %}&category=document{% if query %}&q={{ query }}{% endif %}" class="btn btn-sm {% if current_category == 'document' %}btn-primary{% else %}btn-secondary{% endif %}">{{ t.filter_documents }}</a>
   </div>
 </div>
 
-<!-- Tabela de Arquivos -->
+<!-- Barra de Navegação em Pastas / Breadcrumbs -->
+{% if not is_search_mode %}
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; flex-wrap: wrap;">
+  <a href="?source={{ current_source }}" style="color: #60a5fa; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;" onclick="event.preventDefault(); loadDashboardRoute(this.href);">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    {{ t.folder_root }}
+  </a>
+  {% for crumb in breadcrumbs %}
+    <span style="color: var(--text-muted);">&bull;</span>
+    {% if forloop.last %}
+      <span style="color: var(--text-primary); font-weight: 600;">{{ crumb.name }}</span>
+    {% else %}
+      <a href="?source={{ current_source }}&folder={{ crumb.path|urlencode }}" style="color: #60a5fa; text-decoration: none;" onclick="event.preventDefault(); loadDashboardRoute(this.href);">{{ crumb.name }}</a>
+    {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<div style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+  <span>{{ t.search_results_label }} {% if query %}: "<strong>{{ query }}</strong>"{% endif %}</span>
+  <a href="?source={{ current_source }}" style="color: #60a5fa; text-decoration: none;" onclick="event.preventDefault(); loadDashboardRoute(this.href);">&times; Limpar busca</a>
+</div>
+{% endif %}
+
+<!-- Tabela de Arquivos e Pastas -->
 <div class="panel-card">
   <div class="table-responsive">
     <table class="data-table">
@@ -65,6 +89,41 @@
         </tr>
       </thead>
       <tbody id="filesTableBody">
+        <!-- Linha para Voltar Nível (quando dentro de subpasta) -->
+        {% if not is_search_mode and parent_folder is not None %}
+        <tr style="cursor: pointer; background: rgba(255, 255, 255, 0.015);" onclick="loadDashboardRoute('?source={{ current_source }}{% if parent_folder %}&folder={{ parent_folder|urlencode }}{% endif %}')">
+          <td colspan="5">
+            <div class="file-name-cell" style="color: #60a5fa; font-weight: 500;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>.. ({{ t.folder_up }})</span>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+
+        <!-- Pastas do Diretório Atual -->
+        {% for folder in folders %}
+        <tr style="cursor: pointer;" onclick="loadDashboardRoute('?source={{ current_source }}&folder={{ folder.path|urlencode }}')">
+          <td>
+            <div class="file-name-cell">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+              <span style="font-weight: 500; color: var(--text-primary);">{{ folder.name }}</span>
+            </div>
+          </td>
+          <td>
+            <span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">{{ folder.path }}/</span>
+          </td>
+          <td><span class="badge" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24; font-size: 11px; padding: 2px 6px; border-radius: 4px;">{{ t.folder_label }}</span></td>
+          <td>-</td>
+          <td style="text-align: right;">
+            <a href="?source={{ current_source }}&folder={{ folder.path|urlencode }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); loadDashboardRoute(this.href);">
+              {{ t.folder_open }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Arquivos do Diretório Atual -->
         {% for file in files %}
         <tr id="row-file-{{ file.id }}">
           <td>
@@ -106,7 +165,9 @@
             </div>
           </td>
         </tr>
-        {% empty %}
+        {% endfor %}
+
+        {% if not folders and not files %}
         <tr>
           <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 48px;">
             {{ t.no_files_found }}
@@ -117,7 +178,7 @@
             </div>
           </td>
         </tr>
-        {% endfor %}
+        {% endif %}
       </tbody>
     </table>
   </div>

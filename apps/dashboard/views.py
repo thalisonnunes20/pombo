@@ -63,26 +63,51 @@ def explorer_view(request):
 
     query = request.GET.get('q', '').strip()
     category = request.GET.get('category', '').strip()
+    folder = request.GET.get('folder', '').strip()
 
-    files = StoredFile.objects.filter(source=source)
+    is_search_mode = bool(query or category)
 
-    if query:
-        files = files.filter(name__icontains=query)
+    if is_search_mode:
+        files = StoredFile.objects.filter(source=source)
+        if query:
+            files = files.filter(name__icontains=query)
 
-    files = files.order_by('-created_at')
+        files = files.order_by('-created_at')
 
-    # Filtro em memória para categorização rápida
-    if category:
-        files = [f for f in files if f.file_category == category]
+        if category:
+            files = [f for f in files if f.file_category == category]
 
-    context = {
-        'files': files,
-        'current_source': source,
-        'query': query,
-        'current_category': category,
-        'can_access_external': request.user.can_access_external or request.user.is_superuser,
-        'current_page': 'explorer',
-    }
+        context = {
+            'is_search_mode': True,
+            'files': files,
+            'folders': [],
+            'current_folder': '',
+            'parent_folder': None,
+            'breadcrumbs': [],
+            'current_source': source,
+            'query': query,
+            'current_category': category,
+            'can_access_external': request.user.can_access_external or request.user.is_superuser,
+            'current_page': 'explorer',
+        }
+    else:
+        from apps.storage.services import list_directory_contents
+        dir_data = list_directory_contents(source, folder)
+
+        context = {
+            'is_search_mode': False,
+            'files': dir_data['files'],
+            'folders': dir_data['folders'],
+            'current_folder': dir_data['current_folder'],
+            'parent_folder': dir_data['parent_folder'],
+            'breadcrumbs': dir_data['breadcrumbs'],
+            'current_source': source,
+            'query': '',
+            'current_category': '',
+            'can_access_external': request.user.can_access_external or request.user.is_superuser,
+            'current_page': 'explorer',
+        }
+
     return render(request, 'dashboard/explorer.html', context)
 
 @login_required

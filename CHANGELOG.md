@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual Storage Mappings**:
   - `storage/uploads`: Writable destination for files uploaded via the web interface.
   - `storage/external`: Read-only host directory mapping allowing indexing, browsing, and sharing of existing files without disk duplication.
+  - Full hierarchical folder tree browsing in File Manager with breadcrumb navigation, subfolder traversal (`..`), and automatic on-the-fly registration.
+  - Enabled symlink following (`followlinks=True`) supporting deeply nested or symlinked media library datasets (Jellyfin/Plex).
   - Physical file deletion: Removing uploaded files physically deletes them from host storage, immediately reclaiming disk space.
 - **Shareable Link Engine**:
   - Token-based delivery with cryptographically random tokens (`/d/<token>/` for raw stream, `/s/<token>/` for web presentation).
@@ -80,6 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-normalized domain inputs in `CSRF_TRUSTED_ORIGINS` to automatically prepend `https://` and `http://`, preventing Django `(4_0.E001)` errors when protocol scheme is omitted.
 - Fixed Docker healthcheck reporting `unhealthy` by serving `/health/` directly in Nginx and ensuring `localhost` and `127.0.0.1` are permanently included in `ALLOWED_HOSTS`.
 - Reduced Nginx `worker_connections` to 1024 to eliminate resource limit warnings in default container runtimes.
+- Fixed "Host Mapped Folder" tab redirecting to Overview: relative links (`?source=external`) were resolved against the site root instead of the current page in the in-panel navigation.
+- Percent-encoded `X-Accel-Redirect` paths so files containing `?`, `#`, `%`, spaces or non-ASCII characters are served correctly by Nginx.
+- RFC 6266 `Content-Disposition` headers (`filename*=utf-8''`) for filenames with accents or non-Latin characters.
+- URL-encoded folder paths in File Manager links (supports names with `&`, `'`, spaces and parentheses).
 
 ### Changed
 - Standardized UI branding across all templates with monochromatic SVG vector pigeon icon and version badge `v1.0.0`.
