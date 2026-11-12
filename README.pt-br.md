@@ -2,6 +2,8 @@
 
 [Read in English](README.md)
 
+**Repositório**: [https://github.com/thalisonnunes20/pombo](https://github.com/thalisonnunes20/pombo)  
+**Imagem Docker**: `ghcr.io/thalisonnunes20/pombo:latest` (ou `:v0.0.1`)  
 **Versão**: `v0.0.1` | **Status**: Pronto para Produção | **Licença**: MIT
 
 O Pombo CDN é um sistema auto-hospedado, leve e de alta performance para distribuição de arquivos, CDN e compartilhamento seguro, empacotado em um contêiner único (*All-in-One* Docker). Desenvolvido para velocidade e simplicidade, combina o poder do Nginx `X-Accel-Redirect` para streaming direto do disco com o Django 5.1, um painel administrativo moderno em tons de cinza escuro neutro, suporte flexível a banco de dados (SQLite nativo com modo WAL ou PostgreSQL/MySQL externo), regras avançadas de expiração de links e sistema completo de logs de auditoria.
@@ -76,52 +78,102 @@ O Pombo CDN executa todos os serviços essenciais em um único contêiner Docker
 
 ---
 
-## Início Rápido (Produção)
+## Como Instalar e Rodar via Docker
 
-### 1. Clonar o Repositório
+Você pode executar o Pombo CDN de duas formas: baixando a imagem oficial pré-compilada do GitHub Container Registry ou construindo a partir do código-fonte.
+
+### Método 1: Imagem Pré-Compilada Oficial (Mais Rápido - Recomendado)
+
+Não é necessário clonar o repositório nem ter código-fonte. Basta criar um arquivo `docker-compose.yml` em uma pasta qualquer:
+
+```yaml
+services:
+  pombo:
+    image: ghcr.io/thalisonnunes20/pombo:latest
+    container_name: pombo
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - SECRET_KEY=pombo-altere-para-um-token-aleatorio-forte-em-producao
+      - DEBUG=0
+      - ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=adminpassword123
+      - ADMIN_EMAIL=admin@pombo.local
+      - DEFAULT_LANGUAGE=pt-br
+      - USE_X_ACCEL=1
+    volumes:
+      - ./data:/app/data
+      - ./storage/uploads:/app/storage/uploads
+      - ./storage/external:/app/storage/external:ro
+```
+
+E iniciar o contêiner:
 
 ```bash
-git clone https://github.com/thalison-dev/pombo.git
+docker compose up -d
+```
+
+#### Ou executar em comando único via `docker run`:
+
+```bash
+docker run -d \
+  --name pombo \
+  -p 8080:80 \
+  -e SECRET_KEY="sua-chave-secreta-de-producao" \
+  -e ADMIN_USERNAME="admin" \
+  -e ADMIN_PASSWORD="adminpassword123" \
+  -e DEFAULT_LANGUAGE="pt-br" \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/storage/uploads:/app/storage/uploads \
+  -v $(pwd)/storage/external:/app/storage/external:ro \
+  --restart unless-stopped \
+  ghcr.io/thalisonnunes20/pombo:latest
+```
+
+---
+
+### Método 2: Construir a partir do Código-Fonte via Git Clone
+
+Se você deseja inspecionar ou alterar os arquivos do sistema:
+
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/thalisonnunes20/pombo.git
 cd pombo
-```
 
-### 2. Configurar as Variáveis de Ambiente
-
-Copie o arquivo `.env.example` para `.env`:
-
-```bash
+# 2. Configurar o arquivo de ambiente
 cp .env.example .env
-```
+# Edite o .env para definir SECRET_KEY, ADMIN_PASSWORD, etc.
 
-Edite o `.env` com suas configurações de produção:
-
-```ini
-SECRET_KEY=gere-uma-chave-secreta-forte-e-aleatoria-para-producao
-DEBUG=0
-ALLOWED_HOSTS=*
-CSRF_TRUSTED_ORIGINS=http://localhost:8080,https://cdn.seudominio.com
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=sua_senha_forte_aqui
-ADMIN_EMAIL=admin@seudominio.com
-DEFAULT_LANGUAGE=pt-br
-USE_X_ACCEL=1
-```
-
-### 3. Iniciar o Contêiner
-
-```bash
+# 3. Construir e iniciar o contêiner
 docker compose up -d --build
 ```
 
-### 4. Acessar o Painel
+---
 
-Abra o navegador e acesse:
+### Acessar o Painel
+
+Assim que o contêiner estiver em execução, abra o navegador em:
 ```
 http://localhost:8080/
 ```
 
-- **Usuário**: `admin` (ou o valor definido em `ADMIN_USERNAME`)
-- **Senha**: configurada em `ADMIN_PASSWORD`
+- **Usuário Padrão**: `admin` (ou o valor definido em `ADMIN_USERNAME`)
+- **Senha Padrão**: `adminpassword123` (ou a senha definida em `ADMIN_PASSWORD`)
+
+---
+
+## Automação de Geração da Imagem Docker (GitHub Actions CI/CD)
+
+O Pombo CDN conta com fluxo automatizado de integração contínua configurado em `.github/workflows/docker-publish.yml`.
+
+A cada commit enviado para a branch `main` ou publicação de tag de versão (`v*`), o GitHub Actions executa automaticamente:
+1. Compilação da imagem Docker multicamada.
+2. Publicação e versionamento direto no GitHub Container Registry (`ghcr.io/thalisonnunes20/pombo:latest` e `ghcr.io/thalisonnunes20/pombo:v0.0.1`).
+3. Suporte a execução manual com 1 clique pela aba "Actions" no GitHub (`workflow_dispatch`).
 
 ---
 
@@ -281,6 +333,7 @@ tar -czvf uploads_backup.tar.gz storage/uploads/
 
 ### `v0.0.1` (Lançamento Inicial de Produção)
 - Contêiner All-in-One com Nginx, Gunicorn, Django 5.1 e Supervisor.
+- Pipeline automatizado de compilação via GitHub Actions para o GitHub Container Registry (`ghcr.io/thalisonnunes20/pombo`).
 - Motor de entrega acelerada direta do disco via `X-Accel-Redirect`.
 - Interface gráfica moderna com tema escuro e navegação responsiva em gaveta para celulares.
 - Funcionalidade "Salvar login" com persistência de 30 dias e preenchimento de usuário.

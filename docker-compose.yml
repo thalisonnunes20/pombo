@@ -1,9 +1,9 @@
 services:
   pombo:
+    image: ghcr.io/thalisonnunes20/pombo:latest
     build:
       context: .
       dockerfile: Dockerfile
-    image: pombo:v0.0.1
     container_name: pombo
     restart: unless-stopped
     ports:
