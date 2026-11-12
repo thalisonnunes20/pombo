@@ -3,8 +3,8 @@
 [Read in Portuguese (Brasil)](README.pt-br.md)
 
 **Repository**: [https://github.com/thalisonnunes20/pombo](https://github.com/thalisonnunes20/pombo)  
-**Docker Image**: `ghcr.io/thalisonnunes20/pombo:latest` (or `:v0.0.1`)  
-**Version**: `v0.0.1` | **Status**: Production Ready | **License**: MIT
+**Docker Image**: `ghcr.io/thalisonnunes20/pombo:latest` (or `:v1.0.0`)  
+**Version**: `v1.0.0` | **Status**: Production Ready | **License**: MIT
 
 Pombo CDN is a self-hosted, lightweight, and high-performance content delivery network (CDN), file delivery, and distribution system packaged in a single all-in-one Docker container. Designed for speed and simplicity, it pairs Nginx `X-Accel-Redirect` for direct-to-disk line-speed streaming with Django 5.1, an intuitive dark-themed management dashboard, flexible database support (out-of-the-box SQLite with WAL mode, or external PostgreSQL/MySQL), granular link expiration rules, and a full built-in audit log.
 
@@ -330,11 +330,13 @@ tar -czvf uploads_backup.tar.gz storage/uploads/
 
 ## Version History
 
-### `v0.0.1` (Initial Production Release)
+See [CHANGELOG.md](CHANGELOG.md) for full release details.
+
+### `v1.0.0` (Official Production Release)
 - All-in-one Docker container with Nginx, Gunicorn, Django 5.1, and Supervisor.
 - Automated GitHub Actions build pipeline to GitHub Container Registry (`ghcr.io/thalisonnunes20/pombo`).
 - High-performance direct-to-disk `X-Accel-Redirect` file delivery engine.
-- Complete responsive dark theme with mobile slide-out drawer navigation.
+- Complete responsive dark theme with mobile slide-out drawer navigation and visual `v1.0.0` branding.
 - Persistent "Remember Login" functionality with client username caching.
 - Multi-tier rate limiting and automated anti-brute-force lockout.
 - Granular link expiration engine (download limits, time limits, combined rules).

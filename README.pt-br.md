@@ -3,8 +3,8 @@
 [Read in English](README.md)
 
 **Repositório**: [https://github.com/thalisonnunes20/pombo](https://github.com/thalisonnunes20/pombo)  
-**Imagem Docker**: `ghcr.io/thalisonnunes20/pombo:latest` (ou `:v0.0.1`)  
-**Versão**: `v0.0.1` | **Status**: Pronto para Produção | **Licença**: MIT
+**Imagem Docker**: `ghcr.io/thalisonnunes20/pombo:latest` (ou `:v1.0.0`)  
+**Versão**: `v1.0.0` | **Status**: Pronto para Produção | **Licença**: MIT
 
 O Pombo CDN é um sistema auto-hospedado, leve e de alta performance para distribuição de arquivos, CDN e compartilhamento seguro, empacotado em um contêiner único (*All-in-One* Docker). Desenvolvido para velocidade e simplicidade, combina o poder do Nginx `X-Accel-Redirect` para streaming direto do disco com o Django 5.1, um painel administrativo moderno em tons de cinza escuro neutro, suporte flexível a banco de dados (SQLite nativo com modo WAL ou PostgreSQL/MySQL externo), regras avançadas de expiração de links e sistema completo de logs de auditoria.
 
@@ -331,11 +331,13 @@ tar -czvf uploads_backup.tar.gz storage/uploads/
 
 ## Histórico de Versões
 
-### `v0.0.1` (Lançamento Inicial de Produção)
+Consulte o arquivo [CHANGELOG.md](CHANGELOG.md) para o histórico detalhado de todas as alterações.
+
+### `v1.0.0` (Lançamento Oficial de Produção)
 - Contêiner All-in-One com Nginx, Gunicorn, Django 5.1 e Supervisor.
 - Pipeline automatizado de compilação via GitHub Actions para o GitHub Container Registry (`ghcr.io/thalisonnunes20/pombo`).
 - Motor de entrega acelerada direta do disco via `X-Accel-Redirect`.
-- Interface gráfica moderna com tema escuro e navegação responsiva em gaveta para celulares.
+- Interface gráfica moderna com tema escuro, navegação responsiva em gaveta para celulares e identificação visual `v1.0.0`.
 - Funcionalidade "Salvar login" com persistência de 30 dias e preenchimento de usuário.
 - Rate limiting multicamadas e bloqueio automatizado anti-força bruta.
 - Motor completo de expiração de links (por downloads, por tempo ou regras combinadas).

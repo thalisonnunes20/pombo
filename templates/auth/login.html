@@ -71,8 +71,11 @@
         <div class="login-logo">
           {% include 'components/pombo_icon.html' with size=24 color='#60a5fa' %}
         </div>
-        <h2 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">{{ t.login_title }}</h2>
-        <p style="font-size: 13px; color: var(--text-muted);">{{ t.login_subtitle }}</p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 4px;">
+          <h2 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0;">{{ t.login_title }}</h2>
+          <span style="font-size: 10px; color: #64748b; font-family: monospace; font-weight: 600; padding: 2px 5px; border-radius: 4px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);">v1.0.0</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">{{ t.login_subtitle }}</p>
       </div>
 
       {% if error %}
@@ -112,6 +115,10 @@
         <a href="{% url 'set_language' 'en' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
         <a href="{% url 'set_language' 'pt-br' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
       </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 18px; font-size: 11px; color: #475569; font-family: monospace;">
+      Pombo CDN &bull; v1.0.0
     </div>
   </div>
 

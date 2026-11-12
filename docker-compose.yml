@@ -10,7 +10,7 @@ services:
       - "8080:80"
     environment:
       # Security Secret Key (Change to a cryptographically strong string in production!)
-      - SECRET_KEY=${SECRET_KEY:-pombo-insecure-production-secret-key-change-me-v001}
+      - SECRET_KEY=${SECRET_KEY:-pombo-insecure-production-secret-key-change-me-v100}
       # Debug mode (0 = Disabled for production, 1 = Enabled for local dev)
       - DEBUG=${DEBUG:-0}
       # Allowed HTTP hosts (comma-separated or '*' for any host)
