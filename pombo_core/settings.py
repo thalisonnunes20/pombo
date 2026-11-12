@@ -13,6 +13,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'pombo-insecure-development-secret-key-chan
 DEBUG = os.getenv('DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
+for internal_host in ['localhost', '127.0.0.1', '[::1]', 'testserver']:
+    if internal_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(internal_host)
 
 raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 parsed_csrf = []

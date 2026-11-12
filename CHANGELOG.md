@@ -78,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed container boot failure (`exec /app/entrypoint.sh: permission denied`) by repositioning `chmod +x /app/entrypoint.sh` after `COPY . /app/` and invoking entrypoint via `/bin/sh` in `Dockerfile`.
 - Auto-normalized domain inputs in `CSRF_TRUSTED_ORIGINS` to automatically prepend `https://` and `http://`, preventing Django `(4_0.E001)` errors when protocol scheme is omitted.
+- Fixed Docker healthcheck reporting `unhealthy` by serving `/health/` directly in Nginx and ensuring `localhost` and `127.0.0.1` are permanently included in `ALLOWED_HOSTS`.
+- Reduced Nginx `worker_connections` to 1024 to eliminate resource limit warnings in default container runtimes.
 
 ### Changed
 - Standardized UI branding across all templates with monochromatic SVG vector pigeon icon and version badge `v1.0.0`.
