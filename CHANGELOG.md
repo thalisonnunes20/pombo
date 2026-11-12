@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `server_tokens off` in Nginx hiding version disclosure.
   - Explicit Nginx location rules denying dotfiles (`.env`, `.git`) and sensitive source files (`.sqlite3`, `.py`, `.sh`, `.log`).
 
+### Fixed
+- Fixed container boot failure (`exec /app/entrypoint.sh: permission denied`) by repositioning `chmod +x /app/entrypoint.sh` after `COPY . /app/` and invoking entrypoint via `/bin/sh` in `Dockerfile`.
+
 ### Changed
 - Standardized UI branding across all templates with monochromatic SVG vector pigeon icon and version badge `v1.0.0`.
 - Upgraded documentation in `README.md` (English) and `README.pt-br.md` (Portuguese) with complete environment variable tables, volume mapping guides, and reverse proxy setup instructions.

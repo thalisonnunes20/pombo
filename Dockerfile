@@ -18,14 +18,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar arquivos de configuração
+# Copiar arquivos de configuração do Nginx e Supervisor
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
 # Copiar código da aplicação
 COPY . /app/
+
+# Garantir permissões de execução no entrypoint (obrigatoriamente DEPOIS do COPY . /app/)
+RUN chmod +x /app/entrypoint.sh
 
 # Criar diretórios de armazenamento e logs
 RUN mkdir -p /app/data /app/storage/uploads /app/storage/external /app/staticfiles /var/log/supervisor /var/log/nginx
@@ -35,5 +36,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -f http://localhost/health/ || exit 1
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
