@@ -154,6 +154,8 @@
       <form id="shareLinkForm" onsubmit="handleCreateLink(event)">
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
           <input type="hidden" id="modalFileId" name="file_id">
+          <input type="hidden" id="modalFolderSource" name="folder_source">
+          <input type="hidden" id="modalFolderPath" name="folder_path">
           
           <div>
             <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">{{ t.modal_selected_file }}</label>
@@ -327,7 +329,18 @@
 
     function openShareModal(fileId, fileName) {
       document.getElementById('modalFileId').value = fileId;
+      document.getElementById('modalFolderSource').value = '';
+      document.getElementById('modalFolderPath').value = '';
       document.getElementById('modalFileName').textContent = fileName;
+      document.getElementById('modalResultBox').style.display = 'none';
+      document.getElementById('shareModalBackdrop').classList.add('active');
+    }
+
+    function openShareFolderModal(source, folderPath, folderName) {
+      document.getElementById('modalFileId').value = '';
+      document.getElementById('modalFolderSource').value = source;
+      document.getElementById('modalFolderPath').value = folderPath;
+      document.getElementById('modalFileName').textContent = folderName.endsWith('/') ? folderName : `${folderName}/`;
       document.getElementById('modalResultBox').style.display = 'none';
       document.getElementById('shareModalBackdrop').classList.add('active');
     }

@@ -32,8 +32,15 @@
         {% for link in links %}
         <tr id="link-row-{{ link.id }}">
           <td>
-            <div style="font-weight: 500; color: var(--text-primary);">{{ link.file.name }}</div>
-            <div style="font-size: 11px; color: var(--text-muted);">{{ link.file.formatted_size }}</div>
+            <div style="font-weight: 500; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              {% if link.file.is_directory %}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                <span>{{ link.file.name }}/</span>
+              {% else %}
+                <span>{{ link.file.name }}</span>
+              {% endif %}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted);">{% if link.file.is_directory %}{{ t.folder_label }} &bull; {% endif %}{{ link.file.formatted_size }}</div>
           </td>
           <td>
             {% if link.is_direct %}

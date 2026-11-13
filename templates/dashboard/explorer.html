@@ -67,6 +67,13 @@
       <a href="?source={{ current_source }}&folder={{ crumb.path|urlencode }}" style="color: #60a5fa; text-decoration: none;" onclick="event.preventDefault(); loadDashboardRoute(this.href);">{{ crumb.name }}</a>
     {% endif %}
   {% endfor %}
+
+  {% if user.can_create_links or user.is_superuser %}
+  <button type="button" class="btn btn-secondary btn-sm" style="margin-left: auto;" onclick="openShareFolderModal('{{ current_source }}', '{{ current_folder|default:'.'|escapejs }}', '{% if current_folder %}{{ current_folder|escapejs }}{% elif current_source == 'external' %}external{% else %}uploads{% endif %}')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    {{ t.btn_share_current_folder }}
+  </button>
+  {% endif %}
 </div>
 {% else %}
 <div style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
@@ -116,9 +123,16 @@
           <td><span class="badge" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24; font-size: 11px; padding: 2px 6px; border-radius: 4px;">{{ t.folder_label }}</span></td>
           <td>-</td>
           <td style="text-align: right;">
-            <a href="?source={{ current_source }}&folder={{ folder.path|urlencode }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); loadDashboardRoute(this.href);">
-              {{ t.folder_open }}
-            </a>
+            <div style="display: inline-flex; gap: 8px;">
+              {% if user.can_create_links or user.is_superuser %}
+              <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openShareFolderModal('{{ current_source }}', '{{ folder.path|escapejs }}', '{{ folder.name|escapejs }}')">
+                {{ t.btn_generate_link }}
+              </button>
+              {% endif %}
+              <a href="?source={{ current_source }}&folder={{ folder.path|urlencode }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); loadDashboardRoute(this.href);">
+                {{ t.folder_open }}
+              </a>
+            </div>
           </td>
         </tr>
         {% endfor %}

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Physical file deletion: Removing uploaded files physically deletes them from host storage, immediately reclaiming disk space.
 - **Shareable Link Engine**:
   - Token-based delivery with cryptographically random tokens (`/d/<token>/` for raw stream, `/s/<token>/` for web presentation).
+  - Full-folder shareable links (`inode/directory`) supporting interactive subfolder browsing, inline media preview, per-file Nginx `X-Accel-Redirect` downloads, and on-the-fly `.zip` archive streaming.
   - Infinite links without count or time constraints.
   - Click/download count limits (automatic expiration after $X$ downloads).
   - Time-based expiration presets (1 hour, 24 hours, 7 days, 30 days) and custom date/time deadlines.

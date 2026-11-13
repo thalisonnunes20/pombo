@@ -138,3 +138,73 @@ class PomboCoreTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.cookies['pombo_language'].value, 'en')
 
+    def test_folder_share_link_creation_navigation_and_zip(self):
+        import io
+        import tempfile
+        import zipfile
+        from pathlib import Path
+        from django.test import override_settings
+
+        with tempfile.TemporaryDirectory() as tmp_ext:
+            ext_root = Path(tmp_ext)
+            show_dir = ext_root / "Series" / "Breaking Bad"
+            season_dir = show_dir / "Season 1"
+            season_dir.mkdir(parents=True)
+            (season_dir / "S01E01.mp4").write_bytes(b"episode 1 binary payload")
+            (show_dir / "poster.jpg").write_bytes(b"jpeg image bytes")
+            (ext_root / "secret_outside.txt").write_bytes(b"should not be accessible")
+
+            with override_settings(EXTERNAL_STORAGE_DIR=ext_root):
+                self.client.force_login(self.user)
+                resp = self.client.post('/api/create/', {
+                    'folder_source': StoredFile.SOURCE_EXTERNAL,
+                    'folder_path': 'Series/Breaking Bad',
+                    'is_direct': 'false',
+                })
+                self.assertEqual(resp.status_code, 200)
+                data = resp.json()
+                self.assertTrue(data['success'])
+                token = data['link']['token']
+
+                link = ShareLink.objects.get(token=token)
+                self.assertTrue(link.file.is_directory)
+                self.assertEqual(link.file.name, "Breaking Bad")
+
+                # 1. Página pública da pasta lista subpastas e arquivos
+                pub_resp = self.client.get(f'/s/{token}/')
+                self.assertEqual(pub_resp.status_code, 200)
+                self.assertContains(pub_resp, "Season 1")
+                self.assertContains(pub_resp, "poster.jpg")
+
+                # 2. Navegação em subpasta dentro do link compartilhado
+                sub_resp = self.client.get(f'/s/{token}/?sub=Season%201')
+                self.assertEqual(sub_resp.status_code, 200)
+                self.assertContains(sub_resp, "S01E01.mp4")
+
+                # 3. Download individual de arquivo dentro da pasta via X-Accel-Redirect
+                dl_file_resp = self.client.get(
+                    f'/d/{token}/?file=Season%201/S01E01.mp4',
+                    HTTP_X_ACCEL_SUPPORTED='1',
+                )
+                self.assertEqual(dl_file_resp.status_code, 200)
+                self.assertEqual(
+                    dl_file_resp['X-Accel-Redirect'],
+                    '/_protected/external/Series/Breaking%20Bad/Season%201/S01E01.mp4'
+                )
+
+                # 4. Bloqueio de Path Traversal tentando sair da pasta compartilhada
+                traversal_resp = self.client.get(f'/d/{token}/?file=../../secret_outside.txt')
+                self.assertEqual(traversal_resp.status_code, 404)
+
+                # 5. Download da pasta completa em streaming .zip
+                zip_resp = self.client.get(f'/d/{token}/')
+                self.assertEqual(zip_resp.status_code, 200)
+                self.assertEqual(zip_resp['Content-Type'], 'application/zip')
+                zip_bytes = b''.join(zip_resp.streaming_content)
+                with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zf:
+                    self.assertIsNone(zf.testzip())
+                    names = sorted(zf.namelist())
+                    self.assertEqual(names, ['Season 1/S01E01.mp4', 'poster.jpg'])
+                    self.assertEqual(zf.read('Season 1/S01E01.mp4'), b"episode 1 binary payload")
+
+

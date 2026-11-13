@@ -72,6 +72,148 @@
       </div>
     </div>
 
+    {% if is_folder %}
+    <!-- Cabeçalho da Pasta Compartilhada -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: flex-start; gap: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #23252a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--border-color);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+        </div>
+        <div style="flex: 1; overflow: hidden;">
+          <h1 style="font-size: 18px; font-weight: 600; color: var(--text-primary); word-break: break-all; margin-bottom: 4px;">{{ file.name }}/</h1>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            <span>{{ t.folder_label }}</span> &bull; <span>{{ file.formatted_size }}</span>
+          </div>
+        </div>
+      </div>
+
+      <a href="{{ zip_download_url }}" class="btn btn-primary btn-sm" style="padding: 10px 16px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        {{ t.public_download_zip }}
+      </a>
+    </div>
+
+    {% if active_preview %}
+    <!-- Player / Preview de Arquivo Selecionado na Pasta -->
+    <div style="margin-top: 20px; padding: 14px; background: #12141a; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); word-break: break-all;">{{ active_preview.name }}</span>
+        <a href="?{% if folder_data.current_sub %}sub={{ folder_data.current_sub|urlencode }}{% endif %}" class="btn btn-secondary btn-sm">{{ t.btn_cancel }}</a>
+      </div>
+      {% if active_preview.category == 'video' %}
+      <div class="media-box" style="margin: 0;">
+        <video controls autoplay preload="metadata" playsinline>
+          <source src="{{ active_preview.preview_url }}" type="{{ active_preview.mime_type }}">
+          {{ t.public_video_unsupported }}
+        </video>
+      </div>
+      {% elif active_preview.category == 'audio' %}
+      <div class="media-box" style="margin: 0; padding: 20px;">
+        <audio controls autoplay style="width: 100%;">
+          <source src="{{ active_preview.preview_url }}" type="{{ active_preview.mime_type }}">
+          {{ t.public_audio_unsupported }}
+        </audio>
+      </div>
+      {% elif active_preview.category == 'image' and active_preview.mime_type != 'image/svg+xml' %}
+      <div class="media-box" style="margin: 0;">
+        <img src="{{ active_preview.preview_url }}" alt="{{ active_preview.name }}">
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Breadcrumb Interno da Pasta -->
+    <div style="display: flex; align-items: center; gap: 8px; margin-top: 18px; background: #12141a; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px; flex-wrap: wrap;">
+      <a href="?" style="color: #60a5fa; text-decoration: none; font-weight: 500;">{{ file.name }}</a>
+      {% for crumb in folder_data.breadcrumbs %}
+        <span style="color: var(--text-muted);">&bull;</span>
+        {% if forloop.last %}
+          <span style="color: var(--text-primary); font-weight: 600;">{{ crumb.name }}</span>
+        {% else %}
+          <a href="?sub={{ crumb.subpath|urlencode }}" style="color: #60a5fa; text-decoration: none;">{{ crumb.name }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Lista de Subpastas e Arquivos da Pasta Compartilhada -->
+    <div style="margin-top: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; background: #12141a; max-height: 420px; overflow-y: auto;">
+      <table class="data-table" style="margin: 0;">
+        <tbody>
+          {% if folder_data.parent_sub is not None %}
+          <tr style="cursor: pointer;" onclick="window.location.href='?{% if folder_data.parent_sub %}sub={{ folder_data.parent_sub|urlencode }}{% endif %}'">
+            <td colspan="3" style="padding: 10px 14px;">
+              <div class="file-name-cell" style="color: #60a5fa; font-weight: 500;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                <span>.. ({{ t.folder_up }})</span>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% for sub in folder_data.folders %}
+          <tr style="cursor: pointer;" onclick="window.location.href='?sub={{ sub.subpath|urlencode }}'">
+            <td style="padding: 10px 14px;">
+              <div class="file-name-cell">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                <span style="font-weight: 500; color: var(--text-primary);">{{ sub.name }}</span>
+              </div>
+            </td>
+            <td style="padding: 10px 14px; font-size: 12px; color: var(--text-muted);">{{ t.folder_label }}</td>
+            <td style="padding: 10px 14px; text-align: right;">
+              <div style="display: inline-flex; gap: 6px;">
+                <a href="?sub={{ sub.subpath|urlencode }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();">{{ t.folder_open }}</a>
+                <a href="/d/{{ link.token }}/?sub={{ sub.subpath|urlencode }}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();" title="{{ t.public_download_zip }}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+
+          {% for item in folder_data.files %}
+          <tr>
+            <td style="padding: 10px 14px;">
+              <div class="file-name-cell">
+                {% if item.category == 'video' %}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 8 7 4-7 4Z"/></svg>
+                {% elif item.category == 'image' %}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                {% elif item.category == 'archive' %}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M4 10V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6"/><rect width="20" height="10" x="2" y="10" rx="2"/><line x1="12" x2="12" y1="14" y2="16"/></svg>
+                {% else %}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                {% endif %}
+                <span style="word-break: break-all;">{{ item.name }}</span>
+              </div>
+            </td>
+            <td style="padding: 10px 14px; font-size: 12px; color: var(--text-muted); white-space: nowrap;">{{ item.formatted_size }}</td>
+            <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
+              <div style="display: inline-flex; gap: 6px;">
+                {% if item.category == 'video' or item.category == 'audio' or item.category == 'image' %}
+                <a href="?{% if folder_data.current_sub %}sub={{ folder_data.current_sub|urlencode }}&{% endif %}preview_file={{ item.rel_path|urlencode }}" class="btn btn-secondary btn-sm">
+                  Preview
+                </a>
+                {% endif %}
+                <a href="/d/{{ link.token }}/?file={{ item.rel_path|urlencode }}" class="btn btn-primary btn-sm">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  {{ t.public_download_button }}
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+
+          {% if not folder_data.folders and not folder_data.files %}
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 32px;">
+              {{ t.no_files_found }}
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
     <!-- Informações do Arquivo -->
     <div style="display: flex; align-items: flex-start; gap: 16px;">
       <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #23252a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--border-color);">
@@ -122,6 +264,7 @@
         {{ t.public_download_button }} ({{ file.formatted_size }})
       </a>
     </div>
+    {% endif %}
 
     <div style="text-align: center; margin-top: 24px; font-size: 11px; color: #475569; font-family: monospace;">
       Powered by Pombo CDN &bull; v1.0.0

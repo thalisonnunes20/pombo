@@ -1,6 +1,8 @@
+import os
 from datetime import timedelta
+from urllib.parse import quote
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, FileResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseNotFound, FileResponse, StreamingHttpResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -9,7 +11,16 @@ from django.db.models import F
 from django.conf import settings
 
 from apps.storage.models import StoredFile
-from apps.storage.services import build_accel_redirect_path, build_content_disposition
+from apps.storage.services import (
+    build_accel_redirect_path,
+    build_accel_redirect_for_relpath,
+    build_content_disposition,
+    classify_file_category,
+    get_or_create_folder_record,
+    list_shared_folder_contents,
+    resolve_file_in_shared_folder,
+    stream_folder_as_zip,
+)
 from apps.dashboard.models import log_event, AuditLog
 from pombo_core.security import get_client_ip, check_rate_limit
 from .models import ShareLink
@@ -24,15 +35,27 @@ SAFE_INLINE_MIMES = {
 @login_required
 @require_POST
 def create_link_api(request):
-    """Cria um novo link compartilhável para um arquivo."""
+    """Cria um novo link compartilhável para um arquivo ou para uma pasta inteira."""
     if not request.user.can_create_links and not request.user.is_superuser:
         return JsonResponse({'success': False, 'error': 'Você não tem permissão para gerar links.'}, status=403)
 
-    file_id = request.POST.get('file_id')
-    stored_file = get_object_or_404(StoredFile, id=file_id)
+    file_id = (request.POST.get('file_id') or '').strip()
+    folder_source = (request.POST.get('folder_source') or '').strip()
+    folder_path = (request.POST.get('folder_path') or '').strip()
 
-    if stored_file.source == StoredFile.SOURCE_EXTERNAL and not request.user.can_access_external and not request.user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Sem permissão para gerar links de pastas mapeadas.'}, status=403)
+    if file_id:
+        stored_file = get_object_or_404(StoredFile, id=file_id)
+        if stored_file.source == StoredFile.SOURCE_EXTERNAL and not request.user.can_access_external and not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Sem permissão para gerar links de pastas mapeadas.'}, status=403)
+    elif folder_source in [StoredFile.SOURCE_UPLOAD, StoredFile.SOURCE_EXTERNAL]:
+        if folder_source == StoredFile.SOURCE_EXTERNAL and not request.user.can_access_external and not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Sem permissão para gerar links de pastas mapeadas.'}, status=403)
+        try:
+            stored_file = get_or_create_folder_record(folder_source, folder_path)
+        except (PermissionError, FileNotFoundError, ValueError) as exc:
+            return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+    else:
+        return JsonResponse({'success': False, 'error': 'Selecione um arquivo ou pasta válida.'}, status=400)
 
     # 1. Limite de downloads (cliques)
     max_downloads = request.POST.get('max_downloads', '').strip()
@@ -149,9 +172,42 @@ def public_landing_view(request, token):
             'link': link
         }, status=410)
 
+    if link.file.is_directory:
+        sub = (request.GET.get('sub') or '').strip()
+        folder_data = list_shared_folder_contents(link.file, sub)
+        preview_file = (request.GET.get('preview_file') or '').strip()
+        active_preview = None
+        if preview_file:
+            try:
+                target_file, _, mime_type = resolve_file_in_shared_folder(link.file, preview_file)
+                active_preview = {
+                    'name': target_file.name,
+                    'rel_path': preview_file,
+                    'mime_type': mime_type,
+                    'category': classify_file_category(target_file.name, mime_type),
+                    'preview_url': f"/d/{link.token}/?file={quote(preview_file)}&preview=1",
+                    'download_url': f"/d/{link.token}/?file={quote(preview_file)}",
+                }
+            except (PermissionError, FileNotFoundError):
+                active_preview = None
+
+        current_sub = folder_data['current_sub']
+        zip_url = f"/d/{link.token}/?sub={quote(current_sub)}" if current_sub else f"/d/{link.token}/"
+        context = {
+            'link': link,
+            'file': link.file,
+            'is_folder': True,
+            'folder_data': folder_data,
+            'active_preview': active_preview,
+            'zip_download_url': zip_url,
+            'download_url': zip_url,
+        }
+        return render(request, 'public/download_page.html', context)
+
     context = {
         'link': link,
         'file': link.file,
+        'is_folder': False,
         'preview_url': f"/d/{link.token}/?preview=1",
         'download_url': f"/d/{link.token}/",
     }
@@ -159,7 +215,7 @@ def public_landing_view(request, token):
 
 def direct_download_view(request, token):
     """
-    Entrega o arquivo binário direto com X-Accel-Redirect.
+    Entrega o arquivo binário direto com X-Accel-Redirect ou pasta em streaming .zip.
     Incrementa o contador de cliques de forma atômica.
     """
     ip = get_client_ip(request)
@@ -190,9 +246,87 @@ def direct_download_view(request, token):
             'link': link
         }, status=410)
 
-    # Incremento atômico para evitar race condition
     is_preview = request.GET.get('preview') == '1'
-    # Só desconta o clique se não for apenas a tag de preview no carregamento da página
+    use_x_accel = settings.USE_X_ACCEL and (
+        request.META.get('HTTP_X_ACCEL_SUPPORTED') == '1' or
+        request.META.get('HTTP_X_REAL_IP') is not None
+    )
+
+    stored_file = link.file
+
+    # Entrega de pasta compartilhada (arquivo individual via ?file= ou pasta completa em .zip)
+    if stored_file.is_directory:
+        requested_file = (request.GET.get('file') or '').strip()
+        if requested_file:
+            try:
+                target_file, source_rel_path, mime_type = resolve_file_in_shared_folder(stored_file, requested_file)
+            except (PermissionError, FileNotFoundError):
+                return HttpResponseNotFound("Arquivo não encontrado na pasta compartilhada.")
+
+            if not is_preview:
+                ShareLink.objects.filter(id=link.id).update(
+                    download_count=F('download_count') + 1,
+                    last_downloaded_at=timezone.now()
+                )
+                log_event(AuditLog.CATEGORY_DOWNLOAD, f"Download de '{target_file.name}' (pasta '{stored_file.name}') via token {link.token}", request=request)
+
+            if is_preview and mime_type in SAFE_INLINE_MIMES:
+                disposition = "inline"
+            else:
+                disposition = build_content_disposition(target_file.name)
+
+            if use_x_accel:
+                response = HttpResponse()
+                response['X-Accel-Redirect'] = build_accel_redirect_for_relpath(stored_file.source, source_rel_path)
+                response['Content-Type'] = mime_type
+                response['Content-Disposition'] = disposition
+                response['X-Content-Type-Options'] = 'nosniff'
+                return response
+
+            try:
+                file_handle = open(target_file, 'rb')
+                response = FileResponse(file_handle, content_type=mime_type)
+                response['Content-Disposition'] = disposition
+                response['X-Content-Type-Options'] = 'nosniff'
+                return response
+            except Exception as e:
+                return HttpResponseNotFound(f"Arquivo não encontrado no disco: {str(e)}")
+
+        # Download da pasta inteira (ou subpasta) em streaming .zip
+        sub = (request.GET.get('sub') or '').strip().strip('/\\')
+        try:
+            folder_root = stored_file.absolute_path.resolve()
+        except PermissionError:
+            return HttpResponseNotFound("Pasta inválida.")
+
+        if sub:
+            norm_sub = os.path.normpath(sub).lstrip('/\\')
+            target_dir = (folder_root / norm_sub).resolve()
+            if not str(target_dir).startswith(str(folder_root)) or not target_dir.exists() or not target_dir.is_dir():
+                return HttpResponseNotFound("Subpasta não encontrada.")
+            zip_filename = f"{target_dir.name}.zip"
+        else:
+            if not folder_root.exists() or not folder_root.is_dir():
+                return HttpResponseNotFound("Pasta não encontrada no disco.")
+            target_dir = folder_root
+            zip_filename = f"{stored_file.name}.zip"
+
+        ShareLink.objects.filter(id=link.id).update(
+            download_count=F('download_count') + 1,
+            last_downloaded_at=timezone.now()
+        )
+        log_event(AuditLog.CATEGORY_DOWNLOAD, f"Download da pasta '{zip_filename}' via token {link.token}", request=request)
+
+        response = StreamingHttpResponse(
+            stream_folder_as_zip(target_dir),
+            content_type='application/zip'
+        )
+        response['Content-Disposition'] = build_content_disposition(zip_filename)
+        response['X-Accel-Buffering'] = 'no'
+        response['X-Content-Type-Options'] = 'nosniff'
+        return response
+
+    # Incremento atômico para arquivo único
     if not is_preview:
         ShareLink.objects.filter(id=link.id).update(
             download_count=F('download_count') + 1,
@@ -200,7 +334,6 @@ def direct_download_view(request, token):
         )
         log_event(AuditLog.CATEGORY_DOWNLOAD, f"Download do arquivo '{link.file.name}' via token {link.token}", request=request)
 
-    stored_file = link.file
     filename = stored_file.name
 
     # Prevenção contra Stored XSS: apenas mimetypes seguros podem ser exibidos inline
@@ -208,11 +341,6 @@ def direct_download_view(request, token):
         disposition = "inline"
     else:
         disposition = build_content_disposition(filename)
-
-    use_x_accel = settings.USE_X_ACCEL and (
-        request.META.get('HTTP_X_ACCEL_SUPPORTED') == '1' or
-        request.META.get('HTTP_X_REAL_IP') is not None
-    )
 
     if use_x_accel:
         response = HttpResponse()

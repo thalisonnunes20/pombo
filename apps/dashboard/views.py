@@ -22,15 +22,16 @@ def format_bytes(num):
 
 @login_required
 def overview_view(request):
-    total_files = StoredFile.objects.count()
-    upload_files_count = StoredFile.objects.filter(source=StoredFile.SOURCE_UPLOAD).count()
-    external_files_count = StoredFile.objects.filter(source=StoredFile.SOURCE_EXTERNAL).count()
+    files_qs = StoredFile.objects.exclude(mime_type=StoredFile.MIME_DIRECTORY)
+    total_files = files_qs.count()
+    upload_files_count = files_qs.filter(source=StoredFile.SOURCE_UPLOAD).count()
+    external_files_count = files_qs.filter(source=StoredFile.SOURCE_EXTERNAL).count()
     
-    total_bytes = StoredFile.objects.aggregate(total=Sum('size'))['total'] or 0
+    total_bytes = files_qs.aggregate(total=Sum('size'))['total'] or 0
     total_downloads = ShareLink.objects.aggregate(total=Sum('download_count'))['total'] or 0
     active_links = [l for l in ShareLink.objects.filter(is_active=True) if l.is_valid]
 
-    recent_files = StoredFile.objects.order_by('-created_at')[:8]
+    recent_files = files_qs.order_by('-created_at')[:8]
     recent_links = ShareLink.objects.select_related('file').order_by('-created_at')[:8]
 
     context = {
@@ -68,7 +69,7 @@ def explorer_view(request):
     is_search_mode = bool(query or category)
 
     if is_search_mode:
-        files = StoredFile.objects.filter(source=source)
+        files = StoredFile.objects.filter(source=source).exclude(mime_type=StoredFile.MIME_DIRECTORY)
         if query:
             files = files.filter(name__icontains=query)
 

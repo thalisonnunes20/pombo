@@ -10,6 +10,7 @@ class StoredFile(models.Model):
         (SOURCE_UPLOAD, 'Upload Local'),
         (SOURCE_EXTERNAL, 'Pasta Externa Mapeada'),
     ]
+    MIME_DIRECTORY = 'inode/directory'
 
     name = models.CharField(max_length=255, verbose_name="Nome do Arquivo")
     relative_path = models.CharField(max_length=1000, verbose_name="Caminho Relativo")
@@ -29,8 +30,14 @@ class StoredFile(models.Model):
         return f"[{self.get_source_display()}] {self.name}"
 
     @property
+    def is_directory(self) -> bool:
+        return self.mime_type == self.MIME_DIRECTORY
+
+    @property
     def formatted_size(self):
         """Retorna o tamanho em formato legível para humanos."""
+        if self.is_directory and self.size == 0:
+            return "Pasta"
         num = float(self.size)
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
             if abs(num) < 1024.0:
@@ -45,6 +52,8 @@ class StoredFile(models.Model):
     @property
     def file_category(self):
         """Classifica o arquivo para preview ou ícones específicos."""
+        if self.is_directory:
+            return 'folder'
         mime = self.mime_type.lower()
         ext = self.extension
         if mime.startswith('image/') or ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp']:
