@@ -30,6 +30,19 @@
   </style>
 </head>
 <body>
+  <!-- Tela de Carregamento Inicial (Preloader em tela cheia) -->
+  <div id="appPreloader">
+    <div class="preloader-box">
+      <div class="preloader-logo-ring">
+        <div class="loading-spinner"></div>
+        <div class="preloader-icon">
+          {% include 'components/pombo_icon.html' with size=24 color='#60a5fa' %}
+        </div>
+      </div>
+      <span class="preloader-text">{{ t.system_loading }}</span>
+    </div>
+  </div>
+
   <div class="expired-card">
     <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: var(--danger-bg); border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 20px;">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -49,9 +62,33 @@
     </div>
 
     <div class="lang-switcher">
-      <a href="{% url 'set_language' 'en' %}" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
-      <a href="{% url 'set_language' 'pt-br' %}" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
+      <a href="{% url 'set_language' 'en' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'en' %}active{% endif %}">EN-US</a>
+      <a href="{% url 'set_language' 'pt-br' %}" onclick="handleLangSwitch(event, this.href)" class="lang-btn {% if current_lang == 'pt-br' %}active{% endif %}">PT-BR</a>
     </div>
   </div>
+
+  <script>
+    function handleLangSwitch(e, url) {
+      e.preventDefault();
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        const text = preloader.querySelector('.preloader-text');
+        if (text) text.textContent = "{{ t.system_loading|escapejs }}";
+        preloader.classList.remove('preloader-hidden');
+      }
+      setTimeout(() => {
+        window.location.href = url;
+      }, 120);
+    }
+
+    window.addEventListener('load', () => {
+      const preloader = document.getElementById('appPreloader');
+      if (preloader) {
+        setTimeout(() => {
+          preloader.classList.add('preloader-hidden');
+        }, 380);
+      }
+    });
+  </script>
 </body>
 </html>
