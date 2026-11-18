@@ -78,3 +78,30 @@ def log_event(category: str, message: str, level: str = AuditLog.LEVEL_INFO, req
         # Nunca quebra a aplicação caso ocorra falha de log
         pass
 
+
+class SystemSetting(models.Model):
+    key = models.CharField(max_length=100, unique=True, verbose_name="Chave")
+    value = models.TextField(default='', verbose_name="Valor")
+
+    class Meta:
+        verbose_name = "Configuração do Sistema"
+        verbose_name_plural = "Configurações do Sistema"
+
+    def __str__(self):
+        return f"{self.key}={self.value}"
+
+    @classmethod
+    def get_bool(cls, key: str, default: bool = False) -> bool:
+        try:
+            item = cls.objects.filter(key=key).first()
+            if item is None:
+                return default
+            return item.value.strip().lower() in ['1', 'true', 'yes', 'on']
+        except Exception:
+            return default
+
+    @classmethod
+    def set_bool(cls, key: str, value: bool):
+        cls.objects.update_or_create(key=key, defaults={'value': 'true' if value else 'false'})
+
+

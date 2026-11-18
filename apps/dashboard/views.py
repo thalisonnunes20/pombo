@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from apps.storage.models import StoredFile
 from apps.links.models import ShareLink
-from .models import AuditLog, log_event
+from .models import AuditLog, log_event, SystemSetting
 
 User = get_user_model()
 
@@ -114,8 +114,10 @@ def explorer_view(request):
 @login_required
 def links_view(request):
     links = ShareLink.objects.select_related('file', 'created_by').order_by('-created_at')
+    public_downloads_enabled = SystemSetting.get_bool('public_downloads_enabled', default=True)
     context = {
         'links': links,
+        'public_downloads_enabled': public_downloads_enabled,
         'current_page': 'links',
     }
     return render(request, 'dashboard/links.html', context)

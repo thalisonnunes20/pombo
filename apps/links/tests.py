@@ -207,4 +207,59 @@ class PomboCoreTests(TestCase):
                     self.assertEqual(names, ['Season 1/S01E01.mp4', 'poster.jpg'])
                     self.assertEqual(zf.read('Season 1/S01E01.mp4'), b"episode 1 binary payload")
 
+    def test_public_downloads_portal_and_toggle(self):
+        from apps.dashboard.models import SystemSetting
+        # Cria arquivo e link ativo
+        file_obj = StoredFile.objects.create(
+            name="arquivo_publico.zip",
+            relative_path="arquivo_publico.zip",
+            source=StoredFile.SOURCE_UPLOAD,
+            size=1048576,
+            mime_type="application/zip"
+        )
+        link = ShareLink.objects.create(file=file_obj, created_by=self.user)
+
+        # 1. Por padrão, a página /downloads/ está ativada e lista o arquivo
+        resp = self.client.get('/downloads/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "arquivo_publico.zip")
+        self.assertContains(resp, f"/d/{link.token}/")
+
+        # 2. Busca e filtros
+        search_resp = self.client.get('/downloads/?q=publico')
+        self.assertEqual(search_resp.status_code, 200)
+        self.assertContains(search_resp, "arquivo_publico.zip")
+
+        empty_search_resp = self.client.get('/downloads/?q=inexistente')
+        self.assertEqual(empty_search_resp.status_code, 200)
+        self.assertNotContains(empty_search_resp, "arquivo_publico.zip")
+
+        # 3. Desativação via API pelo usuário com permissão
+        self.client.force_login(self.user)
+        toggle_resp = self.client.post('/api/settings/public-downloads/')
+        self.assertEqual(toggle_resp.status_code, 200)
+        data = toggle_resp.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['enabled'])
+        self.assertFalse(SystemSetting.get_bool('public_downloads_enabled'))
+
+        # 4. Acesso a /downloads/ desativado retorna 403
+        self.client.logout()
+        disabled_resp = self.client.get('/downloads/')
+        self.assertEqual(disabled_resp.status_code, 403)
+        self.assertContains(disabled_resp, "Disabled", status_code=403)
+
+        # 5. Reativação via API
+        self.client.force_login(self.user)
+        toggle_back_resp = self.client.post('/api/settings/public-downloads/')
+        self.assertEqual(toggle_back_resp.status_code, 200)
+        self.assertTrue(toggle_back_resp.json()['enabled'])
+        self.assertTrue(SystemSetting.get_bool('public_downloads_enabled'))
+
+        # 6. /downloads/ volta a funcionar
+        resp_after = self.client.get('/downloads/')
+        self.assertEqual(resp_after.status_code, 200)
+        self.assertContains(resp_after, "arquivo_publico.zip")
+
+
 

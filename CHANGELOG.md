@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Shareable Link Engine**:
   - Token-based delivery with cryptographically random tokens (`/d/<token>/` for raw stream, `/s/<token>/` for web presentation).
   - Full-folder shareable links (`inode/directory`) supporting interactive subfolder browsing, inline media preview, per-file Nginx `X-Accel-Redirect` downloads, and on-the-fly `.zip` archive streaming.
+  - Dedicated public downloads portal (`/downloads/`) listing all currently active shared files and folders, with search filtering by name/type, direct downloads, and individual links.
+  - Interface toggle in Shared Links (`/dashboard/links/`) allowing administrators to activate or deactivate the public `/downloads/` portal at any time.
   - Infinite links without count or time constraints.
   - Click/download count limits (automatic expiration after $X$ downloads).
   - Time-based expiration presets (1 hour, 24 hours, 7 days, 30 days) and custom date/time deadlines.

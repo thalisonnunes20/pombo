@@ -199,6 +199,20 @@ TRANSLATIONS = {
         'public_video_unsupported': 'Your browser does not support direct playback of this video format.',
         'public_audio_unsupported': 'Your browser does not support HTML5 audio.',
 
+        # Public Downloads Portal (/downloads/)
+        'public_downloads_portal_title': 'Downloads Center',
+        'public_downloads_portal_subtitle': 'Publicly shared files and folders available for direct download.',
+        'public_downloads_label': 'Public /downloads Page',
+        'btn_view_public_downloads': 'Public Downloads Page',
+        'public_downloads_enabled_toast': 'Public downloads page enabled.',
+        'public_downloads_disabled_toast': 'Public downloads page disabled.',
+        'public_downloads_disabled_title': 'Downloads Page Disabled',
+        'public_downloads_disabled_desc': 'The public downloads portal is currently turned off by the system administrator.',
+        'no_public_downloads_found': 'No shared files or folders are currently available for download.',
+        'filter_folders': 'Folders',
+        'action_copy_download_url': 'Copy download link',
+        'btn_direct_download': 'Download',
+
         # Expired Page
         'expired_title': 'Link Unavailable',
         'expired_desc': 'This link has been revoked, reached its maximum allowed downloads, or has expired.',
@@ -434,6 +448,20 @@ TRANSLATIONS = {
         'public_streaming_notice': 'Entrega acelerada via streaming direto com Nginx X-Accel.',
         'public_video_unsupported': 'Seu navegador não suporta reprodução direta deste formato de vídeo.',
         'public_audio_unsupported': 'Seu navegador não suporta áudio HTML5.',
+
+        # Public Downloads Portal (/downloads/)
+        'public_downloads_portal_title': 'Central de Downloads',
+        'public_downloads_portal_subtitle': 'Arquivos e pastas compartilhados disponíveis para download direto.',
+        'public_downloads_label': 'Página Pública /downloads',
+        'btn_view_public_downloads': 'Página Pública de Downloads',
+        'public_downloads_enabled_toast': 'Página pública de downloads ativada.',
+        'public_downloads_disabled_toast': 'Página pública de downloads desativada.',
+        'public_downloads_disabled_title': 'Página de Downloads Desativada',
+        'public_downloads_disabled_desc': 'A central de downloads públicos está desativada no momento pelo administrador do sistema.',
+        'no_public_downloads_found': 'Nenhum arquivo ou pasta compartilhado disponível para download no momento.',
+        'filter_folders': 'Pastas',
+        'action_copy_download_url': 'Copiar link de download',
+        'btn_direct_download': 'Baixar',
 
         # Expired Page
         'expired_title': 'Link Indisponível',

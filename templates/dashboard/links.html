@@ -6,6 +6,18 @@
 <!-- Cabeçalho Interno do Conteúdo -->
 <div class="content-header">
   <h1 class="page-title">{{ t.links_title }}</h1>
+  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+    <a href="{% url 'public_downloads' %}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+      {{ t.btn_view_public_downloads }} (/downloads/)
+    </a>
+    {% if user.can_create_links or user.is_superuser %}
+    <button type="button" id="btnToggleDownloadsPortal" class="btn btn-sm {% if public_downloads_enabled %}btn-primary{% else %}btn-secondary{% endif %}" onclick="togglePublicDownloadsPortal()" style="display: inline-flex; align-items: center; gap: 6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+      {{ t.public_downloads_label }}: <strong id="portalStatusLabel">{% if public_downloads_enabled %}{{ t.badge_active }}{% else %}{{ t.badge_revoked }}{% endif %}</strong>
+    </button>
+    {% endif %}
+  </div>
 </div>
 <div class="panel-card">
   <div class="panel-header">
@@ -162,5 +174,33 @@
   window.copyFullLink = copyFullLink;
   window.toggleLink = toggleLink;
   window.deleteLink = deleteLink;
+
+  async function togglePublicDownloadsPortal() {
+    try {
+      const response = await fetch('/api/settings/public-downloads/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      });
+      const data = await response.json();
+      if (data.success) {
+        const btn = document.getElementById('btnToggleDownloadsPortal');
+        const lbl = document.getElementById('portalStatusLabel');
+        if (data.enabled) {
+          if (btn) { btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary'); }
+          if (lbl) lbl.textContent = window.POMBO_T.badge_active || 'Ativo';
+          showToast(window.POMBO_T.public_downloads_enabled_toast || 'Página pública de downloads ativada.', 'success');
+        } else {
+          if (btn) { btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary'); }
+          if (lbl) lbl.textContent = window.POMBO_T.badge_revoked || 'Revogado';
+          showToast(window.POMBO_T.public_downloads_disabled_toast || 'Página pública de downloads desativada.', 'info');
+        }
+      } else {
+        showToast(data.error || 'Erro', 'error');
+      }
+    } catch (e) {
+      showToast('Erro de comunicação.', 'error');
+    }
+  }
+  window.togglePublicDownloadsPortal = togglePublicDownloadsPortal;
 </script>
 {% endblock %}

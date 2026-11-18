@@ -21,7 +21,7 @@ from apps.storage.services import (
     resolve_file_in_shared_folder,
     stream_folder_as_zip,
 )
-from apps.dashboard.models import log_event, AuditLog
+from apps.dashboard.models import log_event, AuditLog, SystemSetting
 from pombo_core.security import get_client_ip, check_rate_limit
 from .models import ShareLink
 
@@ -144,6 +144,94 @@ def delete_link_api(request, link_id):
     link.delete()
     log_event(AuditLog.CATEGORY_DELETE, f"Link de compartilhamento {token} excluído", request=request)
     return JsonResponse({'success': True})
+
+@login_required
+@require_POST
+def toggle_public_downloads_api(request):
+    """Ativa ou desativa a exibição da página pública /downloads/."""
+    if not request.user.can_create_links and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'Permissão negada.'}, status=403)
+
+    current = SystemSetting.get_bool('public_downloads_enabled', default=True)
+    new_state = not current
+    SystemSetting.set_bool('public_downloads_enabled', new_state)
+
+    status_str = "ativada" if new_state else "desativada"
+    log_event(
+        AuditLog.CATEGORY_LINK,
+        f"Página pública de downloads (/downloads/) {status_str}",
+        request=request
+    )
+    return JsonResponse({
+        'success': True,
+        'enabled': new_state,
+        'status_text': 'Ativo' if new_state else 'Revogado'
+    })
+
+def public_downloads_view(request):
+    """
+    Página pública dedicada a listar todos os downloads e pastas compartilhadas disponíveis no sistema.
+    Permite busca em tempo real, visualização de metadados e download direto com X-Accel / ZIP.
+    """
+    is_enabled = SystemSetting.get_bool('public_downloads_enabled', default=True)
+    if not is_enabled:
+        return render(request, 'public/downloads_disabled.html', {}, status=403)
+
+    query = (request.GET.get('q') or '').strip()
+    category = (request.GET.get('category') or '').strip()
+
+    now = timezone.now()
+    links_qs = ShareLink.objects.select_related('file', 'created_by').filter(
+        is_active=True
+    ).exclude(
+        expires_at__isnull=False,
+        expires_at__lte=now
+    ).order_by('-created_at')
+
+    items = []
+    for link in links_qs:
+        if not link.is_valid:
+            continue
+
+        file_obj = link.file
+        name = file_obj.name
+        is_folder = file_obj.is_directory
+        cat = 'folder' if is_folder else file_obj.file_category
+
+        if query and query.lower() not in name.lower():
+            continue
+
+        if category:
+            if category == 'folder' and not is_folder:
+                continue
+            elif category != 'folder' and (is_folder or cat != category):
+                continue
+
+        download_url = f"/d/{link.token}/"
+        landing_url = f"/s/{link.token}/"
+        primary_url = download_url if link.is_direct else landing_url
+
+        items.append({
+            'link': link,
+            'file': file_obj,
+            'name': name,
+            'is_folder': is_folder,
+            'category': cat,
+            'formatted_size': file_obj.formatted_size,
+            'download_url': download_url,
+            'landing_url': landing_url,
+            'primary_url': primary_url,
+            'token': link.token,
+            'created_at': link.created_at,
+        })
+
+    context = {
+        'items': items,
+        'total_items': len(items),
+        'query': query,
+        'current_category': category,
+    }
+    return render(request, 'public/downloads_portal.html', context)
 
 def public_landing_view(request, token):
     """Página de apresentação/download do link compartilhado."""
