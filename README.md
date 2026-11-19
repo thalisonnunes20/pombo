@@ -4,7 +4,7 @@
 
 **Repository**: [https://github.com/thalisonnunes20/pombo](https://github.com/thalisonnunes20/pombo)  
 **Docker Image**: `ghcr.io/thalisonnunes20/pombo:latest` (or `:v1.0.0`)  
-**Version**: `v1.0.0` | **Status**: Production Ready | **License**: MIT
+**Version**: `v1.0.1` | **Status**: Production Ready | **License**: MIT
 
 Pombo CDN is a self-hosted, lightweight, and high-performance content delivery network (CDN), file delivery, and distribution system packaged in a single all-in-one Docker container. Designed for speed and simplicity, it pairs Nginx `X-Accel-Redirect` for direct-to-disk line-speed streaming with Django 5.1, an intuitive dark-themed management dashboard, flexible database support (out-of-the-box SQLite with WAL mode, or external PostgreSQL/MySQL), granular link expiration rules, and a full built-in audit log.
 
